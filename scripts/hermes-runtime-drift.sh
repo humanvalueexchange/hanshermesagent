@@ -50,11 +50,14 @@ fi
 
 if [[ -f "$ENV_FILE" ]]; then
   rendered_config="$TMP_DIR/config.yaml"
+  manifest="$REPO_ROOT/config/llm-stack.yaml"
   sed "s/\${HVE_MCP_API_KEY}/${HVE_MCP_API_KEY:-}/g" \
     "$REPO_ROOT/config/hermes-config.template.yaml" > "$rendered_config"
-  if [[ ! -f "$PROFILE/config.yaml" ]]; then
+  if [[ ! -f "$REPO_ROOT/config/llm-stack.yaml" ]]; then
+    fail "model stack manifest is missing: $REPO_ROOT/config/llm-stack.yaml"
+  elif [[ ! -f "$PROFILE/config.yaml" ]]; then
     fail "live Hermes config is missing: $PROFILE/config.yaml"
-  elif python3 - "$rendered_config" "$PROFILE/config.yaml" <<'PY'
+  elif python3 - "$rendered_config" "$PROFILE/config.yaml" "$manifest" <<'PY'
 import sys
 from pathlib import Path
 
@@ -62,17 +65,17 @@ import yaml
 
 template = yaml.safe_load(Path(sys.argv[1]).read_text())
 live = yaml.safe_load(Path(sys.argv[2]).read_text())
+manifest = yaml.safe_load(Path(sys.argv[3]).read_text())
 
-def provider_config(document):
-    providers = document.get("providers") or {}
-    return next(iter(providers.values()), {})
+resident = manifest["resident"]
+expected_models = {entry["model"] for entry in resident.values()}
+primary = resident["primary"]["model"]
+provider_config = next(iter((live.get("providers") or {}).values()), {})
 
-expected_models = {"qwen3.5:27b-128k", "gpt-oss:20b", "qwen2.5:3b", "nomic-embed-text"}
-live_provider = provider_config(live)
 checks = [
-    (live.get("model", {}).get("default") == template.get("model", {}).get("default"), "primary model"),
-    (live_provider.get("default_model") == template.get("model", {}).get("default"), "provider default model"),
-    (set(live_provider.get("models") or []) == expected_models, "approved Ollama model catalog"),
+    (live.get("model", {}).get("default") == primary, "primary model"),
+    (provider_config.get("default_model") == primary, "provider default model"),
+    (set(provider_config.get("models") or []) == expected_models, "approved Ollama model catalog"),
     (live.get("security", {}).get("allow_private_urls") is False, "private URL protection"),
     (live.get("security", {}).get("tirith_fail_open") is False, "Tirith fail-closed mode"),
 ]
@@ -130,6 +133,16 @@ fi
 
 if command -v ollama >/dev/null 2>&1; then
   models="$(ollama list 2>/dev/null | awk 'NR > 1 {print $1}')"
+  resident_models="$(python3 - "$REPO_ROOT/config/llm-stack.yaml" <<'PY'
+import sys
+from pathlib import Path
+import yaml
+
+manifest = yaml.safe_load(Path(sys.argv[1]).read_text())
+for entry in manifest["resident"].values():
+    print(entry["model"])
+PY
+)"
   while read -r model; do
     [[ -z "$model" ]] && continue
     if grep -Fxq "$model" <<<"$models" || grep -Fq "${model}:" <<<"$models"; then
@@ -137,7 +150,16 @@ if command -v ollama >/dev/null 2>&1; then
     else
       fail "Ollama model missing: $model"
     fi
-  done < <(grep -oE 'ollama (run|pull) [^[:space:]]+' "$REPO_ROOT/scripts/hermes-preload-models.sh" | awk '{print $2}' | sort -u)
+  done <<<"$resident_models"
+  loaded_models="$(ollama ps 2>/dev/null | awk 'NR > 1 {print $1}')"
+  while read -r model; do
+    [[ -z "$model" ]] && continue
+    if grep -Fxq "$model" <<<"$loaded_models" || grep -Fq "${model}:" <<<"$loaded_models"; then
+      pass "Ollama resident model loaded: $model"
+    else
+      fail "Ollama resident model is not loaded: $model"
+    fi
+  done <<<"$resident_models"
 else
   fail "ollama command is unavailable"
 fi

@@ -382,6 +382,7 @@ providers:
     - qwen3.5:27b-128k
     - gpt-oss:20b
     - qwen2.5:3b
+    - nomic-embed-text
     name: Ollama
 quick_commands: {}
 security:

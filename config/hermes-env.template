@@ -9,7 +9,7 @@ HVE_MCP_API_KEY=your-mcp-api-key-here
 # Ollama endpoint (default: local)
 OLLAMA_HOST=http://localhost:11434
 
-# Current local model roles
+# Current resident local model roles; see config/llm-stack.yaml
 # HERMES_PRIMARY_MODEL=qwen3.5:27b-128k
 # HERMES_CODING_MODEL=gpt-oss:20b
 # HERMES_DERIVER_MODEL=qwen2.5:3b
