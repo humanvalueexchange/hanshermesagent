@@ -105,7 +105,7 @@ Generated: {iso_now()}
 
 ## Risk / critic veto / audit logging / reporting
 - Critic veto model is configured in the 4-agent architecture, but this script does not verify live multi-model invocation.
-- Audit logging for overnight cron output is present under ~/.hermes/profiles/main/cron/output/.
+- Audit logging for overnight cron output is present under the active Hermes profile cron output directory.
 - Morning reporting is configured via the repo-managed cron stack.
 
 ## Whether a trustworthy strategy exists yet

@@ -15,7 +15,7 @@ Step 0 — CTO CONVERSATION DIGEST
 Before anything else, harvest today's Telegram conversations and write a daily digest for the CTO.
 
   0a. Read all session JSON files modified in the last 24 hours from:
-        ~/.hermes/profiles/main/sessions/
+        ~/.hermes/profiles/<active-profile>/sessions/
       Extract every message and response from Telegram platform sessions only.
 
   0b. Write a digest file to:
@@ -83,13 +83,13 @@ The SKILL.md must include:
 Choose the most appropriate category from: trading, data-science, research, devops, autonomous-ai-agents, meta
 
 Write the file to:
-  ~/.hermes/profiles/main/skills/{category}/{skill-name}/SKILL.md
+  ~/.hermes/profiles/<active-profile>/skills/{category}/{skill-name}/SKILL.md
 
 Step 3 — COMMIT TO GITHUB
 After writing the skill file, execute these terminal commands:
 
   cd ~/hermes-cfo
-  cp ~/.hermes/profiles/main/skills/{category}/{skill-name}/SKILL.md dotfiles/skills/{category}/{skill-name}/SKILL.md
+  cp ~/.hermes/profiles/<active-profile>/skills/{category}/{skill-name}/SKILL.md dotfiles/skills/{category}/{skill-name}/SKILL.md
   git add dotfiles/skills/
   git commit -m "skill(nightly): add {skill-name} — {one line description}
 
@@ -128,15 +128,15 @@ hermes-cfo → dotfiles/skills/{category}/{skill-name}/SKILL.md
 ---
 
 Step 5 — LOG
-Append a one-line entry to ~/.hermes/profiles/main/evolution.log in this format:
+Append a one-line entry to ~/.hermes/profiles/<active-profile>/evolution.log in this format:
   {ISO datetime} | SKILL_ADDED | {skill-name} | {category} | {one-line reason}
 
 ---
 
 Important rules for this cron job:
 - Add exactly ONE skill per night. Quality over quantity.
-- Never duplicate a skill that already exists in ~/.hermes/profiles/main/skills/
-- Never write a skill that requires an external paid API unless Hans has already confirmed the key exists in ~/.hermes/profiles/main/.env
+- Never duplicate a skill that already exists in ~/.hermes/profiles/<active-profile>/skills/
+- Never write a skill that requires an external paid API unless Hans has already confirmed the key exists in ~/.hermes/profiles/<active-profile>/.env
 - If you cannot identify a meaningful skill gap, write a skill that improves documentation or invocation clarity for an existing skill — but still commit and send the briefing
 - If git push fails, still send the Telegram briefing and note the commit failure
 - Run silently — no Telegram messages during the night except the morning briefing
@@ -172,12 +172,12 @@ Skills that require actual Python code or system dependencies get built by the C
 
 Hermes maintains his own log at:
 ```
-~/.hermes/profiles/main/evolution.log
+~/.hermes/profiles/<active-profile>/evolution.log
 ```
 
 Check it anytime with:
 ```bash
-cat ~/.hermes/profiles/main/evolution.log
+cat ~/.hermes/profiles/<active-profile>/evolution.log
 ```
 
 ## CTO Digest Log

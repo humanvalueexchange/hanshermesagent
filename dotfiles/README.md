@@ -11,7 +11,7 @@ These files are **templates and live copies** — the authoritative source of tr
 
 | File in repo | Live path on DGX | Notes |
 |---|---|---|
-| `SOUL.md` | `~/.hermes/profiles/main/SOUL.md` | Hermes identity. Reloaded on every Telegram message — no restart needed after deploy. |
+| `SOUL.md` | active Hermes profile `SOUL.md` | Hermes identity. Reloaded on every message — no restart needed after deploy. |
 | `hermes-env.template` | `~/.hermes/.env` *(manual fill)* | Template only — never contains real secrets. Fill in secrets manually after fresh restore. |
 | `inject-market-data.sh` | `~/.hermes/agent-hooks/inject-market-data.sh` | Market data hook injected into every Hermes request. |
 | `hermes-model-preload.service` | `~/.config/systemd/user/hermes-model-preload.service` | Loads all 3 Platonic stack models on boot. |
@@ -45,7 +45,7 @@ Changes to `skills/hve/**/SKILL.md` require a Hermes gateway restart after deplo
 cd ~/hermes-cfo && bash scripts/hermes-deploy.sh
 
 # Deploy SOUL.md only (no restart required)
-cp dotfiles/SOUL.md ~/.hermes/profiles/main/SOUL.md
+cp dotfiles/SOUL.md ~/.hermes/profiles/<active-profile>/SOUL.md
 
 # Deploy a specific hook
 cp dotfiles/inject-market-data.sh ~/.hermes/agent-hooks/inject-market-data.sh
@@ -67,7 +67,7 @@ sudo systemctl enable --now hermes-data-refresh.timer
 ## Secrets Policy
 
 - **Never commit real secrets** to this repo — use `[PLACEHOLDER]` values in templates
-- Live secrets live in `~/.hermes/profiles/main/config.yaml` and `~/.hermes-mcp.env` (both gitignored)
+- Live secrets live in the active Hermes profile `config.yaml` and `~/.hermes-mcp.env` (both gitignored)
 - See `SECURITY.md` for the full placeholder convention and incident response procedure
 
 ---
@@ -78,7 +78,7 @@ One backup of the live config is maintained:
 
 ```bash
 # Before any config change
-cp ~/.hermes/profiles/main/config.yaml ~/.hermes/profiles/main/config.yaml.bak
+cp ~/.hermes/profiles/<active-profile>/config.yaml ~/.hermes/profiles/<active-profile>/config.yaml.bak
 ```
 
 Old numbered backups (`.bak.issue26`, `.bak.issue31`, etc.) are cleaned up after each issue

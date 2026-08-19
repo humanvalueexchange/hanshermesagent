@@ -14,8 +14,8 @@ This repository holds **configuration templates, scripts, agent definitions, and
 | Type | Example |
 |---|---|
 | MCP API keys | `X-HVE-API-Key` values |
-| `.env` files with real values | `~/.hermes-mcp.env`, `~/.hermes/profiles/main/.env` |
-| Live `config.yaml` | `~/.hermes/profiles/main/config.yaml` (contains API key header) |
+| `.env` files with real values | `~/.hermes-mcp.env`, the active Hermes profile `.env` |
+| Live `config.yaml` | the active Hermes profile `config.yaml` (contains API key header) |
 | SSH private keys | `id_rsa`, `id_ed25519` |
 | Tailscale / VPN configs | `wg0.conf`, etc. |
 | LAN or Tailscale IPs | Use `[DGX_LAN_IP]` / `[DGX_TAILSCALE_IP]` placeholders |
@@ -23,9 +23,9 @@ This repository holds **configuration templates, scripts, agent definitions, and
 ### Always use templates
 | Template (commit this ✅) | Live file (never commit ❌) |
 |---|---|
-| `config/hermes-config.template.yaml` | `~/.hermes/profiles/main/config.yaml` |
+| `config/hermes-config.template.yaml` | active Hermes profile `config.yaml` |
 | `config/hermes-env.template` | `~/.hermes-mcp.env` |
-| `dotfiles/SOUL.md` | `~/.hermes/profiles/main/SOUL.md` |
+| `dotfiles/SOUL.md` | active Hermes profile `SOUL.md` |
 
 ### IP / hostname placeholders
 | Placeholder | Meaning |

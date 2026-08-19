@@ -6,7 +6,8 @@ set -euo pipefail
 
 PORT="${HVE_MCP_PORT:-8765}"
 ENV_FILE="${HOME}/.hermes-mcp.env"
-CONFIG_FILE="${HOME}/.hermes/profiles/main/config.yaml"
+ACTIVE_PROFILE="$(cat "${HOME}/.hermes/active_profile" 2>/dev/null || echo default)"
+CONFIG_FILE="${HOME}/.hermes/profiles/${ACTIVE_PROFILE}/config.yaml"
 SKILLS_DIR="${HOME}/hermes-cfo/skills/hve"
 KNOWLEDGE_PYTHON="${HOME}/.hve-knowledge/venv/bin/python3"
 KNOWLEDGE_SEARCH_SCRIPT="${HOME}/hermes-cfo/mcp/tools/knowledge/search.py"

@@ -113,7 +113,7 @@ OCR is fully local:
 - Scanned pages are rendered with `pdftoppm`.
 - Tesseract runs on CPU with English language data.
 - OCR metadata is preserved in each manifest.
-- No cloud OCR or Hugging Face network access is used during intake.
+- No cloud OCR or external embedding service is used during intake.
 
 ## Knowledge storage layout
 

@@ -1,9 +1,9 @@
-# Test Plan: Automated Intake Pipeline (Knowledge Layer Phase 1)
+# Historical Test Plan: Automated Intake Pipeline (Knowledge Layer Phase 1)
 
 **Related:** Issue #47 (per HVE-Knowledge-Architecture-v1.0 / v1.1 — PDF drop automation), RFC #54, ADR-005, post-#46 baseline (PR #53)
 
 **Owner:** Grok-Build (Lead Test Engineer & Adversarial Reviewer)  
-**Status:** Draft for team review — ready for Vulcan to implement against  
+**Status:** Historical — implemented and superseded by `scripts/validate-hermes-integration.sh`
 **Date:** 2026-05-31  
 **Target Hardware:** DGX Spark (aarch64, Blackwell-class GPU, NVMe)  
 **Acceptance Target (from architecture):** Drop PDF to `/hve-library/intake/inbox/` → fully searchable in LanceDB with citations in **< 5 minutes** for a ~300-page book.

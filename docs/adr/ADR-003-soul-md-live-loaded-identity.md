@@ -22,7 +22,7 @@ Agent identity is externalised into a dedicated file: **`dotfiles/SOUL.md`**.
 ### How it works
 
 1. `dotfiles/SOUL.md` is the **source of truth in git** — version-controlled, diffable, reviewable.
-2. On every new Telegram message, Hermes gateway reloads SOUL.md fresh from `~/.hermes/profiles/main/SOUL.md`.
+2. On every new gateway message, Hermes reloads SOUL.md fresh from the active profile.
 3. `scripts/hermes-deploy.sh` diffs and copies `dotfiles/SOUL.md` → live path; no restart required for identity changes.
 4. `scripts/hermes-install.sh` installs it on fresh DGX restores.
 

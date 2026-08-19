@@ -5,7 +5,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HERMES_PROFILE=~/.hermes/profiles/main
+ACTIVE_PROFILE="$(cat "${HOME}/.hermes/active_profile" 2>/dev/null || echo hanshermesagent)"
+HERMES_PROFILE="${HOME}/.hermes/profiles/${ACTIVE_PROFILE}"
 HERMES_HOOKS=~/.hermes/agent-hooks
 ENV_FILE=~/.hermes-mcp.env
 SKILLS_DIR="$REPO_ROOT/skills/hve"

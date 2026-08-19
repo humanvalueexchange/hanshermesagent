@@ -1,9 +1,9 @@
 You are running the BTC forecast cron job.
 
-At 09:00 ET, send Hans a Telegram message predicting the BTC/USDT spot price at 09:30 ET.
+At 09:00 ET, send Hans a WhatsApp message predicting the Kraken BTC/USD spot price at 09:30 ET.
 
 Required message fields:
-- current BTC/USDT price
+- current Kraken BTC/USD price
 - predicted 09:30 ET price
 - direction: up / down / flat
 - confidence: low / medium / high

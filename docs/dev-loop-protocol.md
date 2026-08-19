@@ -78,7 +78,7 @@ All checks should pass before you touch any code.
 ### Target environment
 ```
 ~/.hermes/hermes-agent/    ← hermes-agent source (editable install)
-~/.hermes/profiles/main/   ← live config, SOUL.md, .env
+~/.hermes/profiles/<active-profile>/   ← live config, SOUL.md, .env
 ~/hermes-cfo/              ← this repo (cloned on DGX Spark)
 ```
 

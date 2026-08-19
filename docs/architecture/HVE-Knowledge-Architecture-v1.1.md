@@ -1,9 +1,9 @@
-# HVE Sovereign Knowledge Architecture
+# HVE Sovereign Knowledge Architecture (Historical Reference)
 ## CTO Reference Document — v1.1 (Blessed Spec)
 
 **Date:** 2026-05-31  
 **Author:** Claude (CTO)  
-**Status:** ✅ Blessed — Ready for Sprint Initialization  
+**Status:** Historical reference — superseded by the deployed local-first stack
 **Classification:** Agent Architecture Artifact  
 **Supersedes:** HVE-Knowledge-Architecture-v1.0.md
 
@@ -609,7 +609,7 @@ cd ~/hermes-cfo && git pull origin main
 systemctl --user restart hermes-mcp
 
 # Step 2: Add tool to gateway allowlist
-nano ~/.hermes/profiles/main/config.yaml
+nano ~/.hermes/profiles/<active-profile>/config.yaml
 # → tools → include → add new tool name
 
 # Step 3: Restart gateway
