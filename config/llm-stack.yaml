@@ -24,9 +24,6 @@ resident:
 
 # Installed but not resident; load only for an explicitly bounded task.
 on_demand:
-  - model: devstral:24b
-    purpose: isolated coding worker
-    context: 65536
   - model: qwen3-coder:30b
     purpose: optional coding evaluation
   - model: qwen2.5-coder:14b

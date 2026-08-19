@@ -17,8 +17,6 @@ Coding    -> gpt-oss:20b      -> coding and fallback reasoning
 Deriver   -> qwen2.5:3b      -> lightweight derivation and utility work
 Embedding -> nomic-embed-text -> local knowledge retrieval vectors
 
-`devstral:24b` is installed for bounded, on-demand coding-worker tasks. It is
-not part of the resident hot set.
 ```
 
 Route work to the correct local model or tool. Do not invent a model status

@@ -53,7 +53,6 @@ Generated: {iso_now()}
 - Coding/fallback: gpt-oss:20b (configured)
 - Deriver: qwen2.5:3b (configured)
 - Embeddings: nomic-embed-text via Ollama (configured)
-- On-demand coding worker: devstral:24b (installed, not resident)
 
 ## Tools, services, models, data, repos, and access
 ### System services

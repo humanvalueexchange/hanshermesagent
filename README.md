@@ -20,10 +20,6 @@ Ollama is the local model runtime. The approved hot set on the DGX Spark is:
 | Lightweight derivation and utility work | `qwen2.5:3b` | 32,768 |
 | Embeddings | `nomic-embed-text:latest` | 2,048 |
 
-`devstral:24b` is installed for bounded, on-demand coding-worker tasks but is
-not kept resident. The canonical role and residency contract is
-`config/llm-stack.yaml`.
-
 The models are served locally through Ollama with persistent keep-alive
 settings. Additional models may exist on disk, but are not part of the
 approved hot set.
