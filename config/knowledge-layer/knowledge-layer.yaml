@@ -2,6 +2,7 @@ root: /hve-library
 
 paths:
   intake_inbox: /hve-library/intake/inbox
+  intake_failed: /hve-library/intake/failed
   intake_test_batch: /hve-library/intake/test-batch
   raw_pdf_archive: /hve-library/raw/pdfs
   extracted_text: /hve-library/processed/text

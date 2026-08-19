@@ -12,6 +12,7 @@ echo "== Creating knowledge-layer directories =="
 sudo install -d -m 755 -o hans -g hans \
   "${ROOT}" \
   "${ROOT}/intake" \
+  "${ROOT}/intake/failed" \
   "${ROOT}/intake/inbox" \
   "${ROOT}/intake/test-batch" \
   "${ROOT}/raw" \
@@ -49,9 +50,9 @@ if [[ ! -f "${VAULT_DIR}/Home.md" ]]; then
 - [[Templates/Literature Note Template]]
 
 ## Operating model
-- PDFs land in `/hve-library/intake/test-batch/`
+- PDFs land in `/hve-library/intake/inbox/`
 - Extracted text lands in `/hve-library/processed/text/`
-- Chunking and LanceDB index builds run in the overnight window
+- New PDFs are indexed automatically by the intake path unit
 EOF
 fi
 
@@ -104,30 +105,37 @@ fi
 uv pip install --python "${VENV_DIR}/bin/python" \
   lancedb pyarrow numpy transformers torch sentencepiece safetensors
 
-echo "== Installing native Obsidian desktop =="
-bash "${REPO_DIR}/scripts/bootstrap-obsidian.sh"
+if [[ -x "${REPO_DIR}/scripts/bootstrap-obsidian.sh" ]]; then
+  echo "== Installing native Obsidian desktop =="
+  bash "${REPO_DIR}/scripts/bootstrap-obsidian.sh"
+else
+  echo "WARN bootstrap-obsidian.sh not present in this checkout — skipping Obsidian desktop bootstrap"
+fi
 
-echo "== Installing knowledge-layer systemd assets =="
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-knowledge.slice" /etc/systemd/system/hve-knowledge.slice
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-library-manifest.service" /etc/systemd/system/hve-library-manifest.service
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-library-manifest.timer" /etc/systemd/system/hve-library-manifest.timer
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-pdf-extract.service" /etc/systemd/system/hve-pdf-extract.service
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-pdf-extract.timer" /etc/systemd/system/hve-pdf-extract.timer
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-library-chunk.service" /etc/systemd/system/hve-library-chunk.service
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-library-chunk.timer" /etc/systemd/system/hve-library-chunk.timer
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-library-index.service" /etc/systemd/system/hve-library-index.service
-sudo install -m 644 "${REPO_DIR}/dotfiles/hve-library-index.timer" /etc/systemd/system/hve-library-index.timer
-sudo systemctl daemon-reload
-sudo systemctl enable hve-library-manifest.timer hve-pdf-extract.timer hve-library-chunk.timer hve-library-index.timer
-sudo systemctl restart hve-library-manifest.timer hve-pdf-extract.timer hve-library-chunk.timer hve-library-index.timer
+echo "== Installing HVE intake user units =="
+install -d -m 755 "${HOME}/.config/systemd/user"
+install -m 644 "${REPO_DIR}/dotfiles/hve-intake.service" "${HOME}/.config/systemd/user/hve-intake.service"
+install -m 644 "${REPO_DIR}/dotfiles/hve-intake.path" "${HOME}/.config/systemd/user/hve-intake.path"
+systemctl --user daemon-reload
+systemctl --user enable hve-intake.path
+systemctl --user start hve-intake.path
+systemctl --user status hve-intake.path --no-pager || true
 
 cat <<'EOF'
 Knowledge layer Phase 1 bootstrapped.
 
 Sample PDF drop location:
-  /hve-library/intake/test-batch/
-Obsidian launcher:
-  ~/.local/bin/obsidian-hve
+  /hve-library/intake/inbox/
+
+Enable/verify the intake watcher:
+  systemctl --user daemon-reload
+  systemctl --user enable hve-intake.path
+  systemctl --user start hve-intake.path
+  systemctl --user status hve-intake.path
 EOF
 
-bash "${REPO_DIR}/scripts/validate-knowledge-layer.sh"
+if [[ -x "${REPO_DIR}/scripts/validate-knowledge-intake.sh" ]]; then
+  bash "${REPO_DIR}/scripts/validate-knowledge-intake.sh" --root "${KNOWLEDGE_ROOT}"
+else
+  echo "WARN validate-knowledge-intake.sh not present in this checkout — skipping validation hook"
+fi
