@@ -71,7 +71,7 @@ Generated: {iso_now()}
 ## What works now without CTO help
 - Repo-managed cron jobs are installed and visible.
 - Trade-lane briefings can be generated from deterministic scripts.
-- Local market data file path for BTC/USDT exists.
+- Local Kraken BTC/USD market data file path exists.
 
 ## What is missing, broken, partial, or unverified
 - Forecast quality is still rule-based, not strategy-validated edge.

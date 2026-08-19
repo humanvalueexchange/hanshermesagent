@@ -1,6 +1,6 @@
 ---
 name: hermes-position-validator
-description: "Validate every proposed BTC trade before execution. Returns APPROVE or REJECT with SAT accounting and explicit failure reasons."
+description: "Validate every proposed Kraken BTC/USD trade before execution. Returns APPROVE or REJECT with SAT accounting and explicit failure reasons."
 category: trading
 version: 1.0
 date: 2026-05-11
@@ -9,7 +9,7 @@ date: 2026-05-11
 # hermes-position-validator — Position Sizing Cross-Validator
 
 ## Overview
-Calls `src/tools/position_validator.py` to validate the proposed BTC/USDT long before Hermes submits any order. The validator enforces risk, sizing, stop distance, long-only policy, SAT accounting, and the global halt flag.
+Calls `src/tools/position_validator.py` to validate the proposed Kraken BTC/USD long before Hermes submits any order. The validator enforces risk, sizing, stop distance, long-only policy, SAT accounting, and the global halt flag.
 
 ## When to Invoke
 - **Every proposed trade** before execution

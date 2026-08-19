@@ -52,7 +52,7 @@ If you start writing "I will call", "I will run", "let me use", or "I'll invoke"
 
 | Need | Must use |
 |---|---|
-| Live BTC spot price | Kraken command from `bitcoin-intelligence` |
+| Live BTC/USD spot price | Kraken command from `bitcoin-intelligence` |
 | On-chain fee estimate | `get_mempool_fees` |
 | Mempool congestion | `get_mempool_depth` |
 | Chain tip / recent blocks | `get_block_status` |

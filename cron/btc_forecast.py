@@ -14,7 +14,7 @@ def main() -> int:
         return 1
 
     print(f"PASS {forecast.predicted_price:.1f}")
-    print(f"- current BTC/USDT price: {forecast.current_price:.1f}")
+    print(f"- current BTC/USD price: {forecast.current_price:.1f}")
     print(f"- predicted 09:30 ET price: {forecast.predicted_price:.1f}")
     print(f"- direction: {forecast.direction}")
     print(f"- confidence: {forecast.confidence}")

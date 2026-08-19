@@ -1,0 +1,9 @@
+provider: kraken
+system_of_record: Kraken public API
+api_pair: XXBTZUSD
+display_pair: BTC/USD
+freqtrade_pair: BTC/USD
+data_filename_prefix: BTC_USD-
+endpoints:
+  ticker: https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD
+  ohlc: https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval={minutes}

@@ -1,5 +1,5 @@
 [Unit]
-Description=Hermes Freqtrade — BTC/USDT Paper Trading
+Description=Hermes Freqtrade — Kraken BTC/USD Paper Trading
 After=network-online.target hermes-gateway.service
 
 [Service]

@@ -1,5 +1,5 @@
 [Unit]
-Description=Hermes — Daily BTC Market Data Refresh
+Description=Hermes — Daily Kraken BTC Market Data Refresh
 After=network-online.target ollama.service
 Wants=network-online.target
 
@@ -7,12 +7,13 @@ Wants=network-online.target
 Type=oneshot
 User=hans
 WorkingDirectory=/home/hans/freqtrade
-# Wait up to 2 minutes for Binance to be reachable (handles post-boot network delays)
-ExecStartPre=/bin/sh -c 'for i in $(seq 1 12); do curl -sf --max-time 5 https://api.binance.com/api/v3/ping && exit 0; echo "Waiting for Binance ($i/12)..."; sleep 10; done; echo "Binance unreachable after 2min — aborting"; exit 1'
+# Wait up to 2 minutes for Kraken to be reachable (handles post-boot network delays)
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 12); do curl -sf --max-time 5 "https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD" && exit 0; echo "Waiting for Kraken ($i/12)..."; sleep 10; done; echo "Kraken unreachable after 2min — aborting"; exit 1'
 ExecStart=/home/hans/freqtrade/.venv/bin/freqtrade download-data \
-  --exchange binance \
-  --pairs BTC/USDT \
+  --exchange kraken \
+  --pairs BTC/USD \
   --timeframes 1m 5m 15m 1h 4h 1d \
+  --dl-trades \
   --days 7 \
   --datadir /home/hans/freqtrade/user_data/data
 StandardOutput=journal

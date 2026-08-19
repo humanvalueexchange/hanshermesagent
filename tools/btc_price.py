@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-btc_price.py — Live BTC/USDT price fetcher for Hermes CFO
+btc_price.py — Live BTC/USD price fetcher for Hermes CFO
 
-Queries Binance public API (no key needed) for current BTC/USDT price.
-Falls back to CoinGecko if Binance is unreachable.
+Queries Kraken public API as the sole market-data system of record.
 
 Usage:
     python3 btc_price.py                      # current price
@@ -11,7 +10,7 @@ Usage:
     python3 btc_price.py --ohlcv 1d           # last closed daily candle
 
 Output (JSON):
-    {"price": 82210.5, "source": "binance", "pair": "BTC/USDT", "ts": "2026-05-10T21:07:00Z"}
+    {"price": 82210.5, "source": "kraken", "pair": "BTC/USD", "ts": "2026-05-10T21:07:00Z"}
 """
 
 import sys
@@ -21,13 +20,12 @@ from datetime import datetime, timezone
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
-BINANCE_TICKER = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
-BINANCE_KLINES  = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval={tf}&limit=2"
-COINGECKO       = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+KRAKEN_BASE = "https://api.kraken.com/0/public"
+KRAKEN_PAIR = "XXBTZUSD"
 
 TF_MAP = {
-    "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-    "1h": "1h", "4h": "4h", "1d": "1d",
+    "1m": 1, "5m": 5, "15m": 15, "30m": 30,
+    "1h": 60, "4h": 240, "1d": 1440,
 }
 
 
@@ -42,33 +40,18 @@ def now_utc() -> str:
 
 
 def get_price() -> dict:
-    # Try Binance first
     try:
-        data = fetch(BINANCE_TICKER)
-        price = float(data["price"])
+        data = fetch(f"{KRAKEN_BASE}/Ticker?pair={KRAKEN_PAIR}")
+        price = float(data["result"][KRAKEN_PAIR]["c"][0])
         return {
             "price": price,
             "price_sats_per_dollar": round(1e8 / price, 2),
-            "source": "binance",
-            "pair": "BTC/USDT",
-            "ts": now_utc(),
-        }
-    except (URLError, KeyError, ValueError):
-        pass
-
-    # Fallback: CoinGecko
-    try:
-        data = fetch(COINGECKO)
-        price = float(data["bitcoin"]["usd"])
-        return {
-            "price": price,
-            "price_sats_per_dollar": round(1e8 / price, 2),
-            "source": "coingecko",
+            "source": "kraken",
             "pair": "BTC/USD",
             "ts": now_utc(),
         }
-    except (URLError, KeyError, ValueError) as e:
-        return {"error": f"All price sources failed: {e}", "ts": now_utc()}
+    except (URLError, KeyError, ValueError):
+        return {"error": "Kraken price unavailable; no alternate source is permitted", "ts": now_utc()}
 
 
 def get_ohlcv(tf: str) -> dict:
@@ -76,24 +59,27 @@ def get_ohlcv(tf: str) -> dict:
         return {"error": f"Unknown timeframe '{tf}'. Use: {list(TF_MAP)}"}
 
     try:
-        klines = fetch(BINANCE_KLINES.format(tf=TF_MAP[tf]))
-        # klines[-2] = last CLOSED candle; klines[-1] = current (open) candle
-        k = klines[-2]
+        data = fetch(f"{KRAKEN_BASE}/OHLC?pair={KRAKEN_PAIR}&interval={TF_MAP[tf]}")
+        rows = data["result"][KRAKEN_PAIR]
+        # Kraken appends the current open candle; use the last closed candle.
+        k = rows[-2]
+        open_time = int(k[0])
+        close_time = open_time + (TF_MAP[tf] * 60)
         return {
             "timeframe": tf,
-            "open_time": datetime.fromtimestamp(k[0] / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "close_time": datetime.fromtimestamp(k[6] / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "open_time": datetime.fromtimestamp(open_time, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "close_time": datetime.fromtimestamp(close_time, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "open":   float(k[1]),
             "high":   float(k[2]),
             "low":    float(k[3]),
             "close":  float(k[4]),
-            "volume": float(k[5]),
-            "source": "binance",
-            "pair":   "BTC/USDT",
+            "volume": float(k[6]),
+            "source": "kraken",
+            "pair":   "BTC/USD",
             "ts":     now_utc(),
         }
-    except (URLError, IndexError, ValueError) as e:
-        return {"error": f"OHLCV fetch failed: {e}", "ts": now_utc()}
+    except (URLError, IndexError, KeyError, ValueError) as e:
+        return {"error": f"Kraken OHLCV fetch failed: {e}", "ts": now_utc()}
 
 
 def main():

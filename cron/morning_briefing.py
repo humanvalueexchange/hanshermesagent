@@ -46,7 +46,7 @@ def main() -> int:
     print("")
     print("4. BTC forecast for 09:30 ET")
     print(
-        f"- PASS — current BTC/USDT {forecast.current_price:.1f}; "
+        f"- PASS — current Kraken BTC/USD {forecast.current_price:.1f}; "
         f"predicted 09:30 ET {forecast.predicted_price:.1f}; "
         f"direction {forecast.direction}; confidence {forecast.confidence}."
     )

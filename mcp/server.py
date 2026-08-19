@@ -161,25 +161,25 @@ def _save_tasks(tasks: list[dict]) -> None:
 @mcp.tool()
 def get_btc_forecast() -> str:
     """
-    Get a live BTC/USDT short-term directional forecast.
+    Get a live BTC/USD short-term directional forecast from Kraken.
 
     Returns current price, predicted price, direction (up/down/flat),
     confidence level, rationale, and invalidation condition.
-    Uses live Binance public API data — no API key required.
+    Uses Kraken public API data — no API key required.
     """
     try:
         klines = _fetch_json(
-            "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=60"
+            "https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval=1"
         )
-        ticker = _fetch_json("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT")
-    except Exception as exc:
+        ticker = _fetch_json("https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD")
+    except (KeyError, TypeError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
         return f"ERROR: market data unavailable — {exc}"
 
-    closes = [float(row[4]) for row in klines]
+    closes = [float(row[4]) for row in klines["result"]["XXBTZUSD"][:-1]]
     if len(closes) < 31:
         return "ERROR: insufficient market history"
 
-    current = float(ticker["price"])
+    current = float(ticker["result"]["XXBTZUSD"]["c"][0])
     r5 = (closes[-1] - closes[-6]) / closes[-6]
     r15 = (closes[-1] - closes[-16]) / closes[-16]
     r30 = (closes[-1] - closes[-31]) / closes[-31]
@@ -202,7 +202,7 @@ def get_btc_forecast() -> str:
         f"Confidence:      {confidence}\n"
         f"Rationale:       5m {r5:+.2%} | 15m {r15:+.2%} | 30m {r30:+.2%} momentum\n"
         f"Invalidation:    if next 5m candle breaks current 15m direction\n"
-        f"Source:          Binance public API (live)"
+        f"Source:          Kraken public API (live)"
     )
 
 
@@ -370,10 +370,10 @@ def get_client_context() -> str:
     # live BTC price
     lines.append("\n## BTC live price")
     try:
-        ticker = _fetch_json("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=5)
-        lines.append(f"- BTC/USDT: ${float(ticker['price']):,.2f}")
-    except Exception:
-        lines.append("- BTC/USDT: unavailable")
+        ticker = _fetch_json("https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD", timeout=5)
+        lines.append(f"- BTC/USD: ${float(ticker['result']['XXBTZUSD']['c'][0]):,.2f}")
+    except (KeyError, TypeError, ValueError, urllib.error.URLError, json.JSONDecodeError):
+        lines.append("- BTC/USD: unavailable")
 
     return "\n".join(lines)
 

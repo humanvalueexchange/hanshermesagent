@@ -1,6 +1,6 @@
 ---
 name: hermes-drawdown-monitor
-description: "Run the Hermes drawdown monitor before every BTC/USDT trade cycle to enforce daily, weekly, equity, and loss-streak circuit breakers."
+description: "Run the Hermes drawdown monitor before every Kraken BTC/USD trade cycle to enforce daily, weekly, equity, and loss-streak circuit breakers."
 category: trading
 version: 1.0
 date: 2026-05-11

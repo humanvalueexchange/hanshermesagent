@@ -107,15 +107,15 @@ class Tools:
 
     def get_data_freshness(self) -> str:
         """
-        Check how fresh the local BTC/USDT feather files are.
+        Check how fresh the local Kraken BTC/USD feather files are.
         Returns age of each timeframe file so Hermes knows if local data is stale.
         """
         timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"]
         now = datetime.now(timezone.utc)
-        lines = ["Local BTC/USDT Feather File Freshness Report", "-" * 52]
+        lines = ["Local Kraken BTC/USD Feather File Freshness Report", "-" * 52]
 
         for tf in timeframes:
-            fpath = self.feather_dir / f"BTC_USDT-{tf}.feather"
+            fpath = self.feather_dir / f"BTC_USD-{tf}.feather"
             if not fpath.exists():
                 lines.append(f"  {tf:>4}: ✗ FILE MISSING")
                 continue

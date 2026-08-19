@@ -20,7 +20,7 @@ BRIEFINGS_DIR = REPO_DIR / "logs" / "briefings"
 HERMES_ROOT = Path.home() / ".hermes"
 MAIN_PROFILE = HERMES_ROOT / "profiles" / "main"
 CRON_JOBS_PATH = MAIN_PROFILE / "cron" / "jobs.json"
-BTC_DATA_PATH = Path.home() / "freqtrade" / "user_data" / "data" / "BTC_USDT-1m.feather"
+BTC_DATA_PATH = Path.home() / "freqtrade" / "user_data" / "data" / "BTC_USD-1m.feather"
 SERVICE_NAMES = (
     "ollama",
     "open-webui",
@@ -149,8 +149,8 @@ def fetch_json_with_retry(url: str, attempts: int = 2, timeout: int = 8) -> dict
 
 
 def build_btc_forecast() -> Forecast:
-    ohlc_url = "https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=1"
-    ticker_url = "https://api.kraken.com/0/public/Ticker?pair=XBTUSD"
+    ohlc_url = "https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval=1"
+    ticker_url = "https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD"
     source = "Kraken public API"
     try:
         ohlc_data = fetch_json_with_retry(ohlc_url)
