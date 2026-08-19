@@ -46,9 +46,9 @@ else
 fi
 
 # ── Test 3: Ollama models loaded ─────────────────────────────────
-info "Checking Platonic 3-model stack is loaded..."
+info "Checking current local Hermes model stack is loaded..."
 MODELS_RESP=$(curl -s --max-time 5 "http://$DGX:11434/api/ps" 2>/dev/null || echo "{}")
-for model in "qwen3.5:9b" "mistral-small:24b" "nemotron-3-nano:30b"; do
+for model in "qwen3.5:27b-128k" "gpt-oss:20b" "qwen2.5:3b" "nomic-embed-text"; do
   if echo "$MODELS_RESP" | grep -q "$model"; then
     pass "Model loaded: $model"
   else

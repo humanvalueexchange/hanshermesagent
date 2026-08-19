@@ -11,8 +11,12 @@ from pathlib import Path
 import lancedb
 import pyarrow as pa
 
-from build_lancedb_index import Embedder, MODEL_NAME, TABLE_NAME
+from build_lancedb_index import MODEL_NAME, TABLE_NAME
 from common import iter_jsonl, now_iso
+from ollama_embeddings import OllamaEmbedder
+
+
+VECTOR_DIMENSION = 768
 
 
 LIBRARY_CHUNKS_SCHEMA = pa.schema(
@@ -33,7 +37,7 @@ LIBRARY_CHUNKS_SCHEMA = pa.schema(
         pa.field("created_at", pa.string()),
         pa.field("publisher", pa.string()),
         pa.field("publication_year", pa.int64()),
-        pa.field("vector", pa.list_(pa.float32(), 768)),
+        pa.field("vector", pa.list_(pa.float32(), VECTOR_DIMENSION)),
     ]
 )
 
@@ -63,6 +67,7 @@ def index_chunks(root: Path, chunk_file: Path, manifest_path: Path) -> dict:
         db = lancedb.connect(str(root / "index" / "lancedb"))
         if TABLE_NAME in db.list_tables().tables:
             table = db.open_table(TABLE_NAME)
+            validate_index_compatibility(table)
             existing = (
                 table.search()
                 .where(f"document_id = '{document_id}'")
@@ -87,10 +92,11 @@ def index_chunks(root: Path, chunk_file: Path, manifest_path: Path) -> dict:
         else:
             table = None
 
-        embedder = Embedder(MODEL_NAME, root / "state" / "model-cache")
+        embedder = OllamaEmbedder(MODEL_NAME)
         vectors = embedder.encode([record["text"] for record in records], "search_document")
         for record, vector in zip(records, vectors):
             record["vector"] = vector
+            record["embedding_model"] = MODEL_NAME
 
         if table is None:
             db.create_table(TABLE_NAME, data=records, schema=LIBRARY_CHUNKS_SCHEMA)
@@ -132,6 +138,28 @@ def update_source_path(root: Path, document_id: str, source_path: str) -> int:
                 values={"source_path": source_path},
             )
         return count
+
+
+def validate_index_compatibility(table) -> None:
+    """Fail clearly when an index was built with a different embedding contract."""
+    schema = table.schema
+    required_fields = {"embedding_model", "vector"}
+    missing = required_fields - set(schema.names)
+    if missing:
+        raise RuntimeError(f"LanceDB index is missing required fields: {', '.join(sorted(missing))}")
+
+    vector_type = schema.field("vector").type
+    if not pa.types.is_fixed_size_list(vector_type) or vector_type.list_size != VECTOR_DIMENSION:
+        raise RuntimeError(
+            f"LanceDB vector dimension mismatch: expected {VECTOR_DIMENSION}, got {vector_type}"
+        )
+
+    sample = table.to_arrow().select(["embedding_model"]).slice(0, 1000)
+    models = {value for value in sample.column("embedding_model").to_pylist() if value}
+    if models and models != {MODEL_NAME}:
+        raise RuntimeError(
+            f"LanceDB embedding model mismatch: expected {MODEL_NAME}, found {', '.join(sorted(models))}"
+        )
 
 
 def main() -> int:

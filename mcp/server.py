@@ -6,7 +6,7 @@ Exposes Hermes CFO capabilities as MCP tools for Copilot Studio
 and any other MCP-compatible agent client.
 
 Transport: Streamable HTTP on port 8765
-Auth:      X-HVE-API-Key header (set HVE_MCP_API_KEY env var; empty = disabled)
+Auth:      X-HVE-API-Key header (HVE_MCP_API_KEY is required for protected paths)
 Tunnel:    Tailscale Funnel → public HTTPS endpoint for Copilot Studio
 """
 
@@ -38,6 +38,8 @@ from tools.github_issues import (  # noqa: E402
     read_github_issue as github_read_issue,
 )
 from tools.knowledge import search_knowledge_vault as knowledge_search  # noqa: E402
+from tools.link_collector import archive_link as collect_link  # noqa: E402
+from tools.pdf_collector import archive_pdf as collect_pdf  # noqa: E402
 from tools.mempool.tools import (  # noqa: E402
     get_block_status,
     get_block_status as _mempool_get_block_status,
@@ -64,6 +66,8 @@ TOOL_NAMES = [
     "get_morning_briefing",
     "get_capability_assessment",
     "search_knowledge_vault",
+    "archive_link",
+    "archive_pdf",
     "create_task",
     "get_client_context",
     "get_node_diagnostic",
@@ -84,7 +88,8 @@ mcp = FastMCP(
         "Human Value Exchange DGX Spark. Use these tools to retrieve financial "
         "forecasts, live mempool and Lightning intelligence, morning briefings, "
         "vault knowledge, GitHub issue context, and client context on behalf of "
-        "HVE clients and the executive team."
+        "HVE clients and the executive team. Link and PDF collection tools are "
+        "restricted to the local HVE knowledge library."
     ),
     transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
 )
@@ -109,10 +114,11 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if request.url.path in self.PUBLIC_PATHS:
             return await call_next(request)
         expected = os.environ.get("HVE_MCP_API_KEY", "")
-        if expected:
-            provided = request.headers.get("X-HVE-API-Key", "")
-            if provided != expected:
-                return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        if not expected:
+            return JSONResponse({"error": "MCP authentication is not configured"}, status_code=503)
+        provided = request.headers.get("X-HVE-API-Key", "")
+        if provided != expected:
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
         return await call_next(request)
 
 
@@ -256,6 +262,18 @@ def search_knowledge_vault(query: str, max_results: int = 5) -> str:
         max_results: Maximum number of matching files to return (default 5, max 20)
     """
     return knowledge_search(query, max_results, _run)
+
+
+@mcp.tool()
+def archive_link(url: str, capture_context: str | None = None) -> dict:
+    """Archive one public HTTP(S) URL into the local HVE knowledge library."""
+    return collect_link(url, capture_context)
+
+
+@mcp.tool()
+def archive_pdf(pdf_path: str, capture_context: str | None = None) -> dict:
+    """Archive one approved Hans Hermes PDF attachment into the local HVE library."""
+    return collect_pdf(pdf_path, capture_context)
 
 
 @mcp.tool()
@@ -595,10 +613,14 @@ def build_app():
     async def agent_card(request: Request):
         return JR(AGENT_CARD)
 
+    async def health(request: Request):
+        return JR({"status": "ok"})
+
     app = Starlette(
         lifespan=lifespan,
         routes=[
             Route("/.well-known/agent.json", agent_card),
+            Route("/health", health),
             Mount("/", app=mcp_app),
         ],
     )
@@ -609,7 +631,9 @@ def build_app():
 if __name__ == "__main__":
     import uvicorn
 
-    host = os.environ.get("HVE_MCP_HOST", "0.0.0.0")
+    host = os.environ.get("HVE_MCP_HOST", "127.0.0.1")
     port = int(os.environ.get("HVE_MCP_PORT", "8765"))
+    if host not in {"127.0.0.1", "localhost", "::1"} and not os.environ.get("HVE_MCP_API_KEY"):
+        raise SystemExit("HVE_MCP_API_KEY is required for non-local MCP binding")
     print(f"Starting HVE Hermes MCP Server on {host}:{port}")
     uvicorn.run(build_app(), host=host, port=port, log_level="info")

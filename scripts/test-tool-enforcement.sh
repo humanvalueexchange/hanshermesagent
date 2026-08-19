@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # test-tool-enforcement.sh — Verify Hermes Platonic 3-model stack tool-use behavior
-# Tests: conductor (qwen3.5:9b) and executor (nemotron-3-nano:30b) MUST call tools.
-#        clarifier (mistral-small:24b) MUST call tools when asked.
+# Tests: primary, coding, and deriver models MUST call tools when asked.
 #
 # Run: bash scripts/test-tool-enforcement.sh
 # Exit 0 = all tests pass | Exit 1 = failures found
@@ -91,10 +90,10 @@ else:
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 1: Conductor (qwen3.5:9b) — MUST call tools
+# SECTION 1: Primary (qwen3.5:27b-128k) — MUST call tools
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "── Section 1: Conductor (qwen3.5:9b) ───────────────────────────"
-CONDUCTOR="qwen3.5:9b"
+echo "── Section 1: Primary (qwen3.5:27b-128k) ───────────────────────"
+CONDUCTOR="qwen3.5:27b-128k"
 
 if ! model_available "$CONDUCTOR"; then
   warn "Model not loaded: $CONDUCTOR"
@@ -120,10 +119,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 2: Clarifier / Research (mistral-small:24b) — MUST call tools
+# SECTION 2: Coding / Fallback (gpt-oss:20b) — MUST call tools
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "── Section 2: Clarifier / Research (mistral-small:24b) ──────────"
-CLARIFIER="mistral-small:24b"
+echo "── Section 2: Coding / Fallback (gpt-oss:20b) ─────────────────"
+CLARIFIER="gpt-oss:20b"
 
 if ! model_available "$CLARIFIER"; then
   warn "Model not loaded: $CLARIFIER"
@@ -143,10 +142,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 3: Executor (nemotron-3-nano:30b) — MUST call tools
+# SECTION 3: Deriver (qwen2.5:3b) — MUST call tools
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "── Section 3: Executor (nemotron-3-nano:30b) ─────────────────────"
-EXECUTION="nemotron-3-nano:30b"
+echo "── Section 3: Deriver (qwen2.5:3b) ────────────────────────────"
+EXECUTION="qwen2.5:3b"
 
 if ! model_available "$EXECUTION"; then
   warn "Model not loaded: $EXECUTION"
@@ -217,6 +216,6 @@ if [ $FAIL -gt 0 ]; then
   exit 1
 else
   echo "✅ All $PASS tests passed. Issue #2 acceptance criteria met."
-  echo "   Platonic 3-model stack: qwen3.5:9b | mistral-small:24b | nemotron-3-nano:30b"
+  echo "   Current local stack: qwen3.5:27b-128k | gpt-oss:20b | qwen2.5:3b"
   exit 0
 fi

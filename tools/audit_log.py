@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Hermes Trade Audit Logger
-Immutable append-only JSON audit trail for all 4-agent trade decisions.
+Hermes Trade Audit Logger.
+Immutable append-only JSON audit trail for local trade decisions.
 """
 import json
 import sys
@@ -39,9 +39,9 @@ def log_trade_cycle(symbol, direction, entry_price, stop, target, size_btc,
         "execution_math": execution_math,
         "circuit_breaker_events": circuit_breaker_events or [],
         "agents": {
-            "conductor": "qwen3.5:9b",
-            "research": "mistral-small:24b",
-            "execution": "nemotron-3-nano:30b"
+            "primary": "qwen3.5:27b-128k",
+            "coding": "gpt-oss:20b",
+            "deriver": "qwen2.5:3b"
         }
     }
     write_entry(entry)
@@ -52,7 +52,7 @@ def log_veto(symbol, reason, consecutive_veto_count):
         "symbol": symbol,
         "veto_reason": reason,
         "consecutive_veto_count": consecutive_veto_count,
-        "conductor_model": "qwen3.5:9b"
+        "primary_model": "qwen3.5:27b-128k"
     })
 
 def log_circuit_breaker(trigger, value=None, action=None):

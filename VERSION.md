@@ -8,10 +8,10 @@
 | Component | Version | Updated | Notes |
 |---|---|---|---|
 | **hermes-agent** | `0.15.2` | 2026-05-30 | v2026.5.29.2 tag — confirmed on 0.15.2 |
-| **qwen3.5:9b** | Ollama latest | 2026-05-30 | Conductor / CFO Brain — 128K context |
-| **mistral-small:24b** | Ollama latest | 2026-05-29 | Clarifier / Research — 131K context |
-| **nemotron-3-nano:30b** | Ollama latest | 2026-05-29 | Executor — 131K context |
-| **gemma2:27b** | Ollama latest | — | Open WebUI debug only — NOT for Telegram |
+| **qwen3.5:27b-128k** | Ollama local | 2026-08-19 | Primary reasoning/orchestration — 131K context |
+| **gpt-oss:20b** | Ollama local | 2026-08-19 | Coding and fallback reasoning — 131K context |
+| **qwen2.5:3b** | Ollama local | 2026-08-19 | Lightweight derivation — 32K context |
+| **nomic-embed-text** | Ollama local | 2026-08-19 | Knowledge embeddings — 768 dimensions |
 | **Open WebUI** | running | 2026-05-29 | Debug console only |
 | **HVE MCP Server** | `1.0.0` | 2026-05-30 | hve-node at :8765 |
 
@@ -37,6 +37,7 @@
 
 | Date | From | To | Upgraded By | Notes |
 |---|---|---|---|---|
+| 2026-08-19 | Transformers/Hugging Face | Ollama `/api/embed` | Hermes-coder | Local 768-dim embeddings; full LanceDB reindex completed |
 | 2026-05-30 | qwen3.5:27b | qwen3.5:9b | Claude (CTO) | Performance: 27b was over-provisioned for conductor role; 9b 6.6 GB vs 17 GB, same quality, frees 10 GB headroom |
 | 2026-05-30 | gemma2:27b | qwen3.5:27b | Claude (CTO) | gemma2 8K ctx too small; qwen3.5:27b 262K ctx ✅ |
 | 2026-05-29 | 0.13.0 | 0.15.2 | Claude (CTO) | Manual — discovered 22-day gap, daily cron now in place |

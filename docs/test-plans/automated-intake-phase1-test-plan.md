@@ -19,7 +19,7 @@ Pipeline (5 stages + orchestration):
 2. **Manifest** — `build_manifest.py` (sha256 dedup, metadata, state machine)
 3. **Extract** — `extract_pdf_text.py` (pdftotext -layout)
 4. **Chunk** — `chunk_text.py` (512–2400 char semantic chunks w/ 250 overlap, chapter guessing)
-5. **Index** — `build_lancedb_index.py` (nomic-embed-text-v1.5 on GPU)
+5. **Index** — `build_lancedb_index.py` (Ollama `nomic-embed-text` locally)
 6. **Finalize + Notify** — `finalize.py` (atomic move to `raw/pdfs/`, update manifest, emit notification to Hermes)
 
 Current baseline (as of 2026-05-31):
@@ -60,14 +60,16 @@ Current baseline (as of 2026-05-31):
   - Table/footnote heavy (López de Prado style)
   - Scanned or image-heavy (expect extraction degradation — document it)
   - Very large (>500 pp) for resource edge
-- Current `nomic-embed-text-v1.5` model cached.
+- Ollama `nomic-embed-text` is installed and reachable at `127.0.0.1:11434`.
 - `pdftotext` (poppler-utils) installed.
 - `hve-knowledge.slice` active.
 - Hermes MCP + `search_knowledge_vault` functional (post-#46).
 - Ability to tail `/hve-library/state/logs/` and manifests in real time.
 - Telegram access for 5× live validation (strict raw-output protocol).
 
-**Repo vs Live Note (hygiene item):** Some existing services reference `/home/hans/hermes-v2/scripts/knowledge_layer/...`. Test plan must verify that #47 work lands consistently under the hermes-cfo control-plane paths or that symlinks/ deployment mapping is explicit (see dotfiles/README.md precedent).
+**Repo vs Live Note:** The canonical control-plane path is
+`/home/hans/hermes-cfo/knowledge/layer/`; tests must verify deployed services
+use this path.
 
 ---
 
@@ -186,7 +188,8 @@ When Vulcan declares ready:
 - Embedding model (nomic) behavior on freshly ingested vs. overnight-indexed content — any freshness or calibration difference?
 - Path unit + timer coexistence: ensure no double-processing.
 - Notification hygiene: must not re-introduce the meta-narrative / over-reporting problems we blocked on in #44.
-- Repo drift (hermes-cfo vs hermes-v2 references in services) — must be resolved or explicitly mapped before claiming production readiness.
+- Repo drift between deployed services and the canonical hermes-cfo control-plane
+  paths must be resolved before claiming production readiness.
 - No redaction path yet (Phase 2 concern) — note that a bad ingest today has no clean "remove this document" yet.
 
 ---

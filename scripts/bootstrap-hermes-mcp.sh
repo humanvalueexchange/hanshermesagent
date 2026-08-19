@@ -17,7 +17,9 @@ echo "== HVE Hermes MCP Server Bootstrap =="
 # ── 1. Python venv via uv ────────────────────────────────────────────────────
 echo "→ Creating Python venv at ${VENV_DIR}"
 uv venv "${VENV_DIR}" --python 3.12 --seed
-uv pip install --python "${VENV_DIR}/bin/python" "mcp[cli]>=1.0"
+uv pip install --python "${VENV_DIR}/bin/python" \
+  "mcp[cli]>=1.0" \
+  "websockets==15.0.1"
 echo "  venv ready."
 
 # ── 2. Ensure log dirs exist ─────────────────────────────────────────────────

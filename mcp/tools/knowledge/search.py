@@ -9,22 +9,16 @@ import os
 import sys
 from pathlib import Path
 
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
 logging.disable(logging.WARNING)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 KNOWLEDGE_ROOT = Path("/hve-library")
 LANCEDB_DIR = KNOWLEDGE_ROOT / "index" / "lancedb"
-MODEL_CACHE_DIR = KNOWLEDGE_ROOT / "state" / "model-cache"
 
 sys.path.insert(0, str(REPO_ROOT / "knowledge" / "layer"))
 
 import lancedb  # noqa: E402
-import transformers  # noqa: E402
 from query_lancedb import QueryEmbedder, TABLE_NAME  # noqa: E402
-
-transformers.logging.set_verbosity_error()
 
 
 def _format_pages(page_start: object, page_end: object) -> str:
@@ -54,7 +48,7 @@ def main() -> int:
         print(f"LanceDB directory not found at {LANCEDB_DIR}", file=sys.stderr)
         return 1
 
-    embedder = QueryEmbedder(MODEL_CACHE_DIR)
+    embedder = QueryEmbedder()
     db = lancedb.connect(str(LANCEDB_DIR))
     table = db.open_table(TABLE_NAME)
     rows = table.search(embedder.encode(args.query)).limit(max(1, args.max_results)).to_list()

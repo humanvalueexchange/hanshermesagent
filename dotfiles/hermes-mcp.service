@@ -12,7 +12,7 @@ WorkingDirectory=%h/hermes-cfo
 ExecStartPre=-/usr/bin/fuser -k 8765/tcp
 ExecStart=%h/.hermes-mcp-venv/bin/python %h/hermes-cfo/mcp/server.py
 EnvironmentFile=-%h/.hermes-mcp.env
-Environment="HVE_MCP_HOST=0.0.0.0"
+Environment="HVE_MCP_HOST=127.0.0.1"
 Environment="HVE_MCP_PORT=8765"
 Restart=always
 RestartSec=10

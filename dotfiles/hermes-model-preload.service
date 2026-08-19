@@ -1,5 +1,5 @@
 [Unit]
-Description=Hermes Platonic Model Preload — keeps qwen3.5:9b + mistral-small:24b + nemotron-3-nano:30b hot in Ollama
+Description=Hermes Model Preload — keeps the approved local Ollama stack hot
 Documentation=https://github.com/humanvalueexchange/hermes-cfo
 After=network-online.target
 

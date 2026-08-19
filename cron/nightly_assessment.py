@@ -49,10 +49,11 @@ def main() -> int:
 
 Generated: {iso_now()}
 
-## 3-agent Platonic stack
-- Conductor: qwen3.5:9b (configured)
-- Clarifier: mistral-small:24b (configured)
-- Executor: nemotron-3-nano:30b (configured)
+## Current local model stack
+- Primary: qwen3.5:27b-128k (configured)
+- Coding/fallback: gpt-oss:20b (configured)
+- Deriver: qwen2.5:3b (configured)
+- Embeddings: nomic-embed-text via Ollama (configured)
 
 ## Tools, services, models, data, repos, and access
 ### System services

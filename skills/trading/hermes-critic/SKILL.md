@@ -1,29 +1,29 @@
 ---
 name: hermes-critic
-description: "Conductor-as-Critic: the Conductor (qwen3.5:9b) performs inline risk veto using CONDUCTOR:APPROVE / CONDUCTOR:VETO. gemma2:27b retired from Telegram stack (8K context too small). Updated 2026-05-30."
+description: "Primary-model risk gate using CONDUCTOR:APPROVE / CONDUCTOR:VETO under the current local Hermes model stack."
 category: trading
 version: 2.0
 date: 2026-05-30
 deprecated_model: gemma2:27b
-active_model: qwen3.5:9b (Conductor)
+active_model: qwen3.5:27b-128k (Primary)
 ---
 
 # hermes-critic — Critic, Risk & Veto (Conductor-Inline)
 
 ## Architecture Change (2026-05-30)
 
-`gemma2:27b` was the dedicated Critic model in the original 4-agent stack. It has been **retired from the Telegram/live stack** because its 8K context window is insufficient for real CFO sessions — the fixed system prompt overhead alone (SOUL.md ~2,500 tokens + MCP tool defs ~800 + market hook ~300) consumed ~4,000 of the available 8K, leaving under 4K for conversation.
-
-The veto function is now performed **inline by the Conductor** (`qwen3.5:9b`, 128K context). The Conductor synthesizes the research output and makes the Go/No-Go decision before routing to the Executor.
+The veto function is performed inline by the primary model
+(`qwen3.5:27b-128k`). It synthesizes research output and makes the Go/No-Go
+decision before any execution workflow.
 
 > `gemma2:27b` remains installed on the DGX and is available for Open WebUI debug sessions (short, controlled, < 8K total) only.
 
-## Current Decision Flow (3-Agent Platonic)
+## Current Decision Flow
 
 ```
-1. Clarifier  →  mistral-small:24b  →  market analysis + strategy
-2. Conductor  →  qwen3.5:9b (you)   →  synthesize + CONDUCTOR:APPROVE or CONDUCTOR:VETO
-3. Executor   →  nemotron-3-nano:30b →  position math + audit trail (only on APPROVE)
+1. Research  →  qwen3.5:27b-128k → market analysis + strategy
+2. Primary  →  qwen3.5:27b-128k → synthesize + CONDUCTOR:APPROVE or CONDUCTOR:VETO
+3. Execution → gpt-oss:20b/qwen2.5:3b → position math + audit trail (only on APPROVE)
 ```
 
 ## Veto Rules (enforced by Conductor)

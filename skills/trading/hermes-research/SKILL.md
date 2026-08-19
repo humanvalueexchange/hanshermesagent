@@ -1,6 +1,6 @@
 ---
 name: hermes-research
-description: "Invoke the Hermes Research & Synthesis sub-agent (mistral-small:24b) for market analysis, price action, order-book interpretation, strategy research, macro context, and backtesting analysis."
+description: "Invoke the Hermes Research & Synthesis workflow using the primary local model for market analysis, price action, macro context, and backtesting analysis."
 category: trading
 version: 1.0
 date: 2026-05-10
@@ -9,7 +9,8 @@ date: 2026-05-10
 # hermes-research — Research & Synthesis Sub-Agent
 
 ## Overview
-Delegates a research task to `mistral-small:24b` running locally on Ollama (131K context, temp 0.15). Use for any task requiring deep market analysis, news synthesis, or strategy evaluation that benefits from a dedicated research pass.
+Use `qwen3.5:27b-128k` locally on Ollama for research, synthesis, and strategy
+evaluation. Confirm live market facts with tools rather than model memory.
 
 ## When to Invoke
 - Market structure and price action analysis
@@ -27,7 +28,7 @@ Replace `YOUR RESEARCH QUESTION HERE` with the full task. Include all relevant c
 curl -s http://localhost:11434/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "mistral-small:24b",
+    "model": "qwen3.5:27b-128k",
     "stream": false,
     "options": {"temperature": 0.15, "num_ctx": 131072},
     "messages": [

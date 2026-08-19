@@ -1,6 +1,6 @@
 ---
 name: hermes-execution
-description: "Invoke the Hermes Execution & Tooling sub-agent (nemotron-3-nano:30b) for position sizing math, Kraken fee calculations, Freqtrade config generation, and paper trade simulation. Requires CRITIC:APPROVE in context."
+description: "Invoke the Hermes Execution & Tooling workflow using the approved local coding/derivation models for position sizing math, Kraken fee calculations, and paper trade simulation. Requires CRITIC:APPROVE in context."
 category: trading
 version: 1.0
 date: 2026-05-10
@@ -9,7 +9,9 @@ date: 2026-05-10
 # hermes-execution — Execution & Tooling Sub-Agent
 
 ## Overview
-Delegates execution tasks to `nemotron-3-nano:30b` (131K context capped from 1M native, temp 0.05 — near-deterministic). Use for all calculation-heavy and code-generation tasks after a trade has been approved.
+Use the local `qwen2.5:3b` deriver for lightweight deterministic calculations and
+`gpt-oss:20b` for code-generation or fallback reasoning after a trade has been
+approved. Verify outputs with tools before acting.
 
 ## ⚠️ Prerequisite
 **A `CRITIC:APPROVE` decision must exist in the current session context before invoking this skill.** If not present, do not invoke. Log: "Execution blocked — no CRITIC:APPROVE in context."
@@ -31,7 +33,7 @@ Provide the complete approved trade: include the CRITIC:APPROVE line, symbol, di
 curl -s http://localhost:11434/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "nemotron-3-nano:30b",
+    "model": "gpt-oss:20b",
     "stream": false,
     "options": {"temperature": 0.05, "num_ctx": 131072},
     "messages": [

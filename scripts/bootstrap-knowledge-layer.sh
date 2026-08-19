@@ -14,6 +14,7 @@ sudo install -d -m 755 -o hans -g hans \
   "${ROOT}/intake" \
   "${ROOT}/intake/failed" \
   "${ROOT}/intake/inbox" \
+  "${ROOT}/intake/processing" \
   "${ROOT}/intake/test-batch" \
   "${ROOT}/raw" \
   "${ROOT}/raw/pdfs" \
@@ -26,7 +27,6 @@ sudo install -d -m 755 -o hans -g hans \
   "${ROOT}/state/manifests" \
   "${ROOT}/state/logs" \
   "${ROOT}/state/failed" \
-  "${ROOT}/state/model-cache" \
   "${ROOT}/vault" \
   "${VAULT_DIR}"
 install -d -m 755 "${RUNTIME_DIR}"
@@ -103,7 +103,7 @@ if [[ ! -x "${VENV_DIR}/bin/python" ]]; then
   uv venv "${VENV_DIR}" --python /usr/bin/python3
 fi
 uv pip install --python "${VENV_DIR}/bin/python" \
-  lancedb pyarrow numpy transformers torch sentencepiece safetensors
+  -r "${REPO_DIR}/knowledge/requirements.txt"
 
 if [[ -x "${REPO_DIR}/scripts/bootstrap-obsidian.sh" ]]; then
   echo "== Installing native Obsidian desktop =="
@@ -135,7 +135,7 @@ Enable/verify the intake watcher:
 EOF
 
 if [[ -x "${REPO_DIR}/scripts/validate-knowledge-intake.sh" ]]; then
-  bash "${REPO_DIR}/scripts/validate-knowledge-intake.sh" --root "${KNOWLEDGE_ROOT}"
+  bash "${REPO_DIR}/scripts/validate-knowledge-intake.sh" --root "${ROOT}"
 else
   echo "WARN validate-knowledge-intake.sh not present in this checkout — skipping validation hook"
 fi

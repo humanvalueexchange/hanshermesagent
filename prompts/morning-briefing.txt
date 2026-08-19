@@ -1,6 +1,6 @@
 You are running the morning executive briefing cron job.
 
-Read today's overnight artifacts from ~/hermes-v2/logs/briefings/ and ~/.hermes/profiles/main/evolution.log, then send Hans one Telegram message in this exact structure:
+Read today's overnight artifacts from ~/hermes-cfo/logs/briefings/ and ~/.hermes/profiles/main/evolution.log, then send Hans one Telegram message in this exact structure:
 
 🌅 HERMES EXECUTIVE MORNING BRIEFING — {DATE}
 

@@ -8,6 +8,4 @@ WorkingDirectory=/home/hans/hermes-cfo
 ExecStart=/home/hans/.hve-knowledge/venv/bin/python3 knowledge/layer/run_intake_pipeline.py
 StandardOutput=journal
 StandardError=journal
-Environment=HF_HUB_OFFLINE=1
-Environment=TRANSFORMERS_OFFLINE=1
 Environment=CUDA_VISIBLE_DEVICES=

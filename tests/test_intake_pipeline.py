@@ -49,7 +49,8 @@ class FinalizeTests(unittest.TestCase):
                 },
             )
 
-            ok, message = finalize.finalize_pdf(root, pdf_path, manifest_path)
+            with mock.patch("finalize.update_source_path", return_value=2):
+                ok, message = finalize.finalize_pdf(root, pdf_path, manifest_path)
 
             self.assertTrue(ok)
             self.assertIn("FINALIZED title=Book chunks=2 path=raw/pdfs/book.pdf", message)
@@ -111,21 +112,30 @@ class RunPipelineTests(unittest.TestCase):
 
             def fake_runner(cmd, capture_output, text, check):  # noqa: ANN001
                 calls.append(cmd)
-                return mock.Mock(returncode=0, stdout="PASS index build", stderr="")
+                return mock.Mock(returncode=0, stdout='{"records": 2}', stderr="")
+
+            def fake_finalize(root, pdf_path, manifest_path):  # noqa: ANN001
+                destination = root / "raw" / "pdfs" / pdf_path.name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                pdf_path.replace(destination)
+                return True, f"FINALIZED path={destination.relative_to(root)}"
 
             exit_code = run_intake_pipeline.run_pipeline(
                 root,
                 runner=fake_runner,
                 extractor=self._fake_extract_success,
                 chunker=self._fake_chunk_success,
+                finalizer=fake_finalize,
                 emit=logs.append,
             )
 
             self.assertEqual(exit_code, 0)
-            self.assertEqual(len(calls), 1)
-            self.assertIn("--device", calls[0])
-            self.assertIn("cpu", calls[0])
-            chunk_args = [value for index, value in enumerate(calls[0]) if calls[0][index - 1] == "--chunk-file"]
+            self.assertEqual(len(calls), 2)
+            self.assertTrue(all("--device" not in call for call in calls))
+            chunk_args = [
+                value for call in calls for index, value in enumerate(call)
+                if index and call[index - 1] == "--chunk-file"
+            ]
             self.assertEqual(len(chunk_args), 2)
             self.assertTrue(all(path.endswith(".jsonl") for path in chunk_args))
             self.assertTrue((root / "raw" / "pdfs" / "alpha.pdf").exists())
@@ -155,13 +165,20 @@ class RunPipelineTests(unittest.TestCase):
 
             def fake_runner(cmd, capture_output, text, check):  # noqa: ANN001
                 runner_calls.append(cmd)
-                return mock.Mock(returncode=0, stdout="PASS index build", stderr="")
+                return mock.Mock(returncode=0, stdout='{"records": 2}', stderr="")
+
+            def fake_finalize(root, pdf_path, manifest_path):  # noqa: ANN001
+                destination = root / "raw" / "pdfs" / pdf_path.name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                pdf_path.replace(destination)
+                return True, f"FINALIZED path={destination.relative_to(root)}"
 
             exit_code = run_intake_pipeline.run_pipeline(
                 root,
                 runner=fake_runner,
                 extractor=flaky_extract,
                 chunker=self._fake_chunk_success,
+                finalizer=fake_finalize,
                 emit=logs.append,
             )
 

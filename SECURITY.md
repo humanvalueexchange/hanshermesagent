@@ -43,7 +43,8 @@ This repository holds **configuration templates, scripts, agent definitions, and
 3. If already pushed to a public repo, rotation is the only safe option — history rewrites cannot guarantee the secret was not scraped.
 4. Open a private issue or DM `@HansHWestphal` immediately.
 
-> **Note:** The MCP API key `F-2lL5Iajeolj43SMOXr3Q_9NzECGZdmuU1b1hUZmqY` was exposed in commit history in May 2026. It has been **rotated and revoked**. The old key is harmless.
+> **Note:** An MCP API key was exposed in commit history in May 2026. It was
+> rotated and revoked immediately; no key value is reproduced here.
 
 ---
 

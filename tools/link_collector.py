@@ -514,7 +514,7 @@ def _build_chunk_records(
             "page_end": 1,
             "chunk_index": index,
             "text": chunk,
-            "embedding_model": "nomic-embed-text-v1.5",
+            "embedding_model": "nomic-embed-text",
             "chunk_hash": _sha256_text(chunk),
             "created_at": created_at,
             "publisher": None,
@@ -537,8 +537,6 @@ def index_link_chunks(root: Path, chunk_path: Path, manifest_path: Path) -> dict
             "error": "LanceDB index runtime is unavailable",
         }
     environment = os.environ.copy()
-    environment["HF_HUB_OFFLINE"] = "1"
-    environment["TRANSFORMERS_OFFLINE"] = "1"
     try:
         result = subprocess.run(
             [

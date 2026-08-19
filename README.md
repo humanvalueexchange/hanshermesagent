@@ -24,12 +24,13 @@ The models are served locally through Ollama with persistent keep-alive
 settings. Additional models may exist on disk, but are not part of the
 approved hot set.
 
-### Embedding migration status
+### Embedding backend
 
-The knowledge indexer currently uses the local cached
-`nomic-ai/nomic-embed-text-v1.5` Transformers implementation in offline mode.
-The planned migration to Ollama `/api/embed` using `nomic-embed-text` has not
-yet been completed. No cloud fallback is permitted.
+The knowledge indexer and query path use the local Ollama `/api/embed`
+endpoint with `nomic-embed-text`. Requests are sent to
+`http://127.0.0.1:11434/api/embed`, use the `search_document` and
+`search_query` prefixes, enforce bounded timeouts, and reject invalid or
+inconsistent vectors. There is no cloud fallback.
 
 ## Runtime services
 

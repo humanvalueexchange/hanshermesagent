@@ -25,6 +25,7 @@ expected = {
     "hermes-nightly-assessment": {"schedule": "0 2 * * *", "deliver": "local", "script": "nightly_assessment.py", "no_agent": True},
     "hermes-morning-briefing": {"schedule": "30 6 * * *", "deliver": "telegram", "script": "morning_briefing.py", "no_agent": True},
     "hermes-btc-forecast": {"schedule": "0 9 * * *", "deliver": "telegram", "script": "btc_forecast.py", "no_agent": True},
+    "hermes-nightly-skill": {"schedule": "0 3 * * *", "deliver": "local", "script": None, "no_agent": False},
 }
 
 jobs = {job["name"]: job for job in list_jobs(include_disabled=True)}
@@ -45,7 +46,7 @@ for name, spec in expected.items():
         errors.append(f"{name}: expected schedule {spec['schedule']}, got {actual_schedule}")
     if actual_deliver != spec["deliver"]:
         errors.append(f"{name}: expected deliver {spec['deliver']}, got {actual_deliver}")
-    if actual_script != spec["script"]:
+    if spec["script"] is not None and actual_script != spec["script"]:
         errors.append(f"{name}: expected script {spec['script']}, got {actual_script}")
     if actual_no_agent != spec["no_agent"]:
         errors.append(f"{name}: expected no_agent {spec['no_agent']}, got {actual_no_agent}")

@@ -36,10 +36,18 @@ def load_pipeline_config() -> dict:
 
 def discover_inbox_pdfs(root: Path, specific_pdf: Path | None = None) -> list[Path]:
     inbox_dir = root / "intake" / "inbox"
+    processing_dir = root / "intake" / "processing"
     inbox_dir.mkdir(parents=True, exist_ok=True)
+    processing_dir.mkdir(parents=True, exist_ok=True)
     if specific_pdf:
         return [specific_pdf] if specific_pdf.exists() else []
-    return sorted(path for path in inbox_dir.glob("*.pdf") if path.is_file())
+    pending = [
+        path
+        for directory in (inbox_dir, processing_dir)
+        for path in directory.glob("*.pdf")
+        if path.is_file()
+    ]
+    return sorted(pending)
 
 
 def claim_pdf(root: Path, pdf_path: Path) -> Path | None:
@@ -266,6 +274,8 @@ def run_pipeline(
                 emit(f"SKIPPED title={current_pdf.stem} reason=file disappeared before processing")
                 skipped += 1
                 continue
+        elif current_pdf.parent == root / "intake" / "processing":
+            pass
         else:
             claimed_pdf = claim_pdf(root, current_pdf)
             if claimed_pdf is None:
@@ -324,26 +334,27 @@ def run_pipeline(
         return 0
 
     if pending_finalize:
-        emit(f"[STEP 4/6] build_lancedb_index count={len(pending_finalize)}")
-        try:
-            documents = [
-                (chunk_file, manifest_path)
-                for (current_pdf, manifest_path, _) in pending_finalize
-                for chunk_file in batch_chunk_files([manifest_path])
-            ]
-        except ValueError as error:
-            indexed = False
-            index_message = str(error)
-        else:
-            indexed, index_message = run_index_build(root, runner, documents)
-        emit(index_message)
-        if not indexed:
-            for current_pdf, manifest_path, _ in pending_finalize:
-                title = load_manifest(manifest_path).get("title", current_pdf.stem)
+        indexed_pending: list[tuple[Path, Path, float]] = []
+        for current_pdf, manifest_path, started in pending_finalize:
+            title = load_manifest(manifest_path).get("title", current_pdf.stem)
+            emit(f"[STEP 4/6] build_lancedb_index title={title}")
+            try:
+                documents = [
+                    (chunk_file, manifest_path)
+                    for chunk_file in batch_chunk_files([manifest_path])
+                ]
+                indexed, index_message = run_index_build(root, runner, documents)
+            except ValueError as error:
+                indexed = False
+                index_message = str(error)
+            emit(index_message)
+            if not indexed:
                 destination = quarantine_pdf(root, current_pdf, manifest_path, "indexing", index_message)
                 emit(f"FAILED title={title} step=indexing error={index_message} path={destination.relative_to(root)}")
                 failed += 1
-            pending_finalize = []
+                continue
+            indexed_pending.append((current_pdf, manifest_path, started))
+        pending_finalize = indexed_pending
 
     for current_pdf, manifest_path, started in pending_finalize:
         title = load_manifest(manifest_path).get("title", current_pdf.stem)

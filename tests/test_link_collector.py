@@ -4,6 +4,7 @@ import json
 import shutil
 import socket
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -154,6 +155,35 @@ class LinkCollectorTests(unittest.TestCase):
         self.assertFalse(result["extracted"])
         self.assertFalse(result["indexed"])
         indexer.assert_not_called()
+
+    def test_pdf_capture_history_is_append_only(self) -> None:
+        from tools import pdf_collector
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_root = Path(tmpdir) / "manifests"
+            manifest_root.mkdir()
+            manifest_path = manifest_root / "document.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "captured_at": "2026-08-19T00:00:00+00:00",
+                        "captures": [
+                            {
+                                "captured_at": "2026-08-19T00:00:00+00:00",
+                                "capture_context": "first",
+                                "capture_source": "telegram_collector",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.object(pdf_collector, "MANIFEST_ROOT", manifest_root):
+                result = pdf_collector._record_capture("document", "second")
+
+            self.assertEqual(result["status"], "processed")
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual([item["capture_context"] for item in manifest["captures"]], ["first", "second"])
 
 
 if __name__ == "__main__":

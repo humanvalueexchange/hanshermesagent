@@ -1,0 +1,5 @@
+lancedb==0.30.2
+pyarrow==24.0.0
+PyYAML==6.0.3
+requests==2.32.5
+websockets==15.0.1

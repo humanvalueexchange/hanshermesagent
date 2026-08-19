@@ -267,7 +267,7 @@ Target latency: < 5 minutes from drop to searchable for a 300-page book.
 
 ## 9. Embedding Model Roadmap
 
-**Current:** `nomic-embed-text-v1.5` — sovereign (fully local, cached on DGX NVMe), 768-dim, working.
+**Current:** `nomic-embed-text` via the local Ollama `/api/embed` endpoint — sovereign, 768-dim, working.
 
 **Cadence (Q1 resolution):** Quarterly automated benchmark against open-source alternatives evaluated on the HVE domain corpus (Bitcoin mechanics, treasury operations, IBIS structures). Migration only if a candidate delivers measurable precision improvement without sovereignty regression.
 
@@ -357,8 +357,8 @@ Every Sunday 02:00 UTC:
 ```
 PHASE 0 — Search Foundation  ✅ COMPLETE (Issue #46 — PR #53 merged)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Semantic search over 8,124 chunks live
-✓ nomic-embed-text-v1.5, 768-dim, local
+✓ Semantic search over 13,933 chunks live
+✓ Ollama nomic-embed-text, 768-dim, local
 ✓ Fallback: grep on processed/text/
 Acceptance: ✅ Hermes answers citation questions with book/chapter/page
 
@@ -532,7 +532,7 @@ Issue #47: systemd path unit, 5-step pipeline, finalize.py, < 5 min acceptance t
 | Component | Location | External dependency |
 |---|---|---|
 | PDF library | DGX NVMe | None |
-| nomic-embed-text-v1.5 | `/hve-library/state/model-cache/` | None (cached) |
+| nomic-embed-text | Ollama local model store | None (cloud-free) |
 | bge-reranker-large | DGX NVMe (Phase 3, post-benchmark) | None after pull |
 | LanceDB index | DGX NVMe | None |
 | Obsidian vault | DGX NVMe | None |
@@ -580,9 +580,9 @@ All six open questions from v1.0 are resolved by team consensus:
 ├── raw/pdfs/               ← post-ingest permanent storage
 ├── processed/text/         ← extracted plain text
 ├── processed/chunks/       ← text chunks
-├── index/lancedb/          ← vector index (8,124 chunks)
-├── state/manifests/        ← document metadata (27 manifests)
-└── state/model-cache/      ← nomic-embed-text-v1.5
+├── index/lancedb/          ← vector index (13,933 chunks)
+├── state/manifests/        ← ingestion and provenance manifests
+└── state/logs/             ← pipeline logs and run records
 
 /hve-library/vault/hve-knowledge-vault/
 ├── IBIS/                   ← Issue, Position, Argument, Decision notes

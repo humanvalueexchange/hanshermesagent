@@ -68,7 +68,7 @@ auxiliary:
     api_key: ''
     base_url: ''
     extra_body: {}
-    model: mistral-small:24b
+    model: qwen2.5:3b
     provider: auto
     timeout: 120
   curator:
@@ -194,11 +194,8 @@ curator:
   stale_after_days: 30
 dashboard:
   theme: default
-# CONDUCTOR MODEL: qwen3.5:9b (128K context) — replaces qwen3.5:27b (over-provisioned).
-# Swap 1 (2026-05-30): gemma2:27b → qwen3.5:27b (8K context too small for live CFO sessions)
-# Swap 2 (2026-05-30): qwen3.5:27b → qwen3.5:9b (27b over-provisioned; 9b same quality at 6.6GB vs 17GB)
-# gemma2:27b is available for Open WebUI debug sessions (short, controlled) only.
-default-model: qwen3.5:9b
+# Primary local model: qwen3.5:27b-128k.
+default-model: qwen3.5:27b-128k
 delegation:
   api_key: ''
   base_url: ''
@@ -306,8 +303,8 @@ memory:
   user_char_limit: 1375
   user_profile_enabled: true
 model:
-  context_length: 262144
-  default: qwen3.5:9b
+  context_length: 131072
+  default: qwen3.5:27b-128k
   provider: ollama
 model_catalog:
   enabled: true
@@ -380,24 +377,18 @@ prompt_caching:
 providers:
   ollama:
     api: http://localhost:11434/v1
-    default_model: qwen3.5:9b
+    default_model: qwen3.5:27b-128k
     models:
-    - qwen3.5:9b
-    - mistral-small:24b
-    - nemotron-3-nano:30b
-    - gemma2:27b
-    - llama3.3:70b-instruct-q3_K_M
-    - qwen3.5:27b
-    - qwen2.5:14b
-    - gpt-oss:120b
-    - nemotron-3-super:120b
+    - qwen3.5:27b-128k
+    - gpt-oss:20b
+    - qwen2.5:3b
     name: Ollama
 quick_commands: {}
 security:
   allow_private_urls: false
   redact_secrets: true
   tirith_enabled: true
-  tirith_fail_open: true
+  tirith_fail_open: false
   tirith_path: tirith
   tirith_timeout: 5
   website_blocklist:
@@ -504,6 +495,8 @@ mcp_servers:
       - get_market_intelligence
       - get_capability_assessment
       - search_knowledge_vault
+      - archive_link
+      - archive_pdf
       - create_task
       - suggest_backlog_issue
       - vote_backlog_issue

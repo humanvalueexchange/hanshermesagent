@@ -73,13 +73,13 @@ This is the difference between a dashboard and an advisor.
          ↓  (hve-library-chunk.timer)
 /hve-library/processed/chunks/ ← text chunks
          ↓  (hve-library-index.timer)
-/hve-library/index/lancedb/    ← vector index (nomic-embed-text-v1.5, 768-dim)
+/hve-library/index/lancedb/    ← vector index (Ollama nomic-embed-text, 768-dim)
          ↓
 search_knowledge_vault MCP tool ← Hermes queries here
 ```
 
 **Current state (2026-05-31):** 25 PDFs, 7,454 chunks indexed.  
-**Embedding model:** `nomic-embed-text-v1.5` (cached at `/hve-library/state/model-cache/`)  
+**Embedding model:** `nomic-embed-text` via the local Ollama `/api/embed` endpoint.  
 **Ingest runtime:** `~/.hve-knowledge/venv/` — isolated from MCP server
 
 ---

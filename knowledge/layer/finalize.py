@@ -33,7 +33,7 @@ def finalize_pdf(root: Path, pdf_path: Path, manifest_path: Path | None = None) 
     raw_pdfs.mkdir(parents=True, exist_ok=True)
 
     if not pdf_path.exists() or (inbox_dir not in pdf_path.parents and processing_dir not in pdf_path.parents):
-        return True, f"WARN finalize skipped path={pdf_path} not in intake"
+        return True, f"WARN finalize skipped path={pdf_path} not in inbox"
 
     if manifest_path is None:
         return False, f"missing manifest for {pdf_path.name}"

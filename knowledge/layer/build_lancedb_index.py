@@ -8,14 +8,12 @@ import fcntl
 from pathlib import Path
 
 import lancedb
-import numpy as np
-import torch
-from transformers import AutoModel, AutoTokenizer
 
 from common import iter_jsonl, load_manifest, now_iso, save_manifest
+from ollama_embeddings import OllamaEmbedder
 
 
-MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5"
+MODEL_NAME = "nomic-embed-text"
 TABLE_NAME = "library_chunks"
 
 
@@ -29,49 +27,6 @@ def index_lock(root: Path):
             yield
         finally:
             fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-
-
-class Embedder:
-    def __init__(self, model_name: str, cache_dir: Path) -> None:
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
-            trust_remote_code=True,
-            cache_dir=str(cache_dir),
-        )
-        self.model = AutoModel.from_pretrained(
-            model_name,
-            trust_remote_code=True,
-            cache_dir=str(cache_dir),
-        ).to(self.device)
-        self.model.eval()
-
-    def encode(self, texts: list[str], prefix: str, batch_size: int = 16) -> list[list[float]]:
-        vectors: list[list[float]] = []
-        for start in range(0, len(texts), batch_size):
-            batch = texts[start : start + batch_size]
-            prepared = [f"{prefix}: {text}" for text in batch]
-            encoded = self.tokenizer(
-                prepared,
-                padding=True,
-                truncation=True,
-                max_length=1024,
-                return_tensors="pt",
-            ).to(self.device)
-            with torch.no_grad():
-                output = self.model(**encoded)
-                hidden = output.last_hidden_state
-                mask = encoded["attention_mask"].unsqueeze(-1)
-                summed = (hidden * mask).sum(dim=1)
-                counts = mask.sum(dim=1).clamp(min=1)
-                pooled = summed / counts
-                pooled = torch.nn.functional.normalize(pooled, p=2, dim=1)
-            vectors.extend(pooled.cpu().numpy().astype(np.float32).tolist())
-            del encoded, output, hidden, mask, summed, counts, pooled
-            if self.device == "cuda":
-                torch.cuda.empty_cache()
-        return vectors
 
 
 def load_chunk_records(root: Path) -> list[dict]:
@@ -96,11 +51,11 @@ def main() -> int:
             print(f"PASS records=0 root={root}")
             return 0
 
-        model_cache = root / "state" / "model-cache"
-        embedder = Embedder(MODEL_NAME, model_cache)
+        embedder = OllamaEmbedder(MODEL_NAME)
         embeddings = embedder.encode([record["text"] for record in records], "search_document")
         for record, vector in zip(records, embeddings):
             record["vector"] = vector
+            record["embedding_model"] = MODEL_NAME
 
         db = lancedb.connect(str(root / "index" / "lancedb"))
         db.create_table(TABLE_NAME, data=records, mode="overwrite")

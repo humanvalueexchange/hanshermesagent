@@ -6,45 +6,21 @@ import argparse
 from pathlib import Path
 
 import lancedb
-import torch
-from transformers import AutoModel, AutoTokenizer
+
+from ollama_embeddings import OllamaEmbedder
+from index_link_chunks import validate_index_compatibility
 
 
-MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5"
+MODEL_NAME = "nomic-embed-text"
 TABLE_NAME = "library_chunks"
 
 
 class QueryEmbedder:
-    def __init__(self, cache_dir: Path) -> None:
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            MODEL_NAME,
-            trust_remote_code=True,
-            cache_dir=str(cache_dir),
-        )
-        self.model = AutoModel.from_pretrained(
-            MODEL_NAME,
-            trust_remote_code=True,
-            cache_dir=str(cache_dir),
-        ).to(self.device)
-        self.model.eval()
+    def __init__(self, _legacy_cache_dir: Path | None = None) -> None:
+        self.embedder = OllamaEmbedder(MODEL_NAME)
 
     def encode(self, text: str) -> list[float]:
-        encoded = self.tokenizer(
-            [f"search_query: {text}"],
-            padding=True,
-            truncation=True,
-            max_length=1024,
-            return_tensors="pt",
-        ).to(self.device)
-        with torch.no_grad():
-            output = self.model(**encoded)
-            hidden = output.last_hidden_state
-            mask = encoded["attention_mask"].unsqueeze(-1)
-            pooled = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
-            pooled = torch.nn.functional.normalize(pooled, p=2, dim=1)
-        return pooled[0].cpu().tolist()
+        return self.embedder.encode([text], "search_query")[0]
 
 
 def main() -> int:
@@ -55,9 +31,14 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(args.root)
-    embedder = QueryEmbedder(root / "state" / "model-cache")
+    embedder = QueryEmbedder()
     db = lancedb.connect(str(root / "index" / "lancedb"))
     table = db.open_table(TABLE_NAME)
+    try:
+        validate_index_compatibility(table)
+    except RuntimeError as exc:
+        print(f"ERROR incompatible LanceDB index: {exc}")
+        return 1
     results = table.search(embedder.encode(args.query)).limit(args.top_k).to_list()
 
     print(f"PASS query={args.query!r} matches={len(results)}")

@@ -1,7 +1,9 @@
 # ADR-002: Platonic 3-Model Stack — Conductor / Clarifier / Executor
 
 **Date:** 2026-05-30  
-**Status:** Accepted  
+**Status:** Superseded by the current local four-model stack documented in
+`README.md`, `VERSION.md`, and `dotfiles/SOUL.md`. Retained as historical
+architecture context.  
 **Authors:** Hans Westphal (CEO), Claude (CTO)  
 **Classification:** Agent Architecture Artifact
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timezone
 import re
 import shutil
 import subprocess
@@ -72,15 +73,20 @@ def _record_capture(document_id: str, capture_context: str | None) -> dict[str, 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["source_type"] = "pdf_document"
     manifest["capture_source"] = "telegram_collector"
+    captured_at = datetime.now(timezone.utc).isoformat()
     manifest["capture_context"] = capture_context
-    manifest["captured_at"] = manifest.get("captured_at") or manifest.get("discovered_at")
-    manifest["captures"] = [
+    manifest["captured_at"] = manifest.get("captured_at") or captured_at
+    captures = manifest.get("captures")
+    if not isinstance(captures, list):
+        captures = []
+    captures.append(
         {
-            "captured_at": manifest["captured_at"],
+            "captured_at": captured_at,
             "capture_context": capture_context,
             "capture_source": "telegram_collector",
         }
-    ]
+    )
+    manifest["captures"] = captures
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return {
         "status": "indexed" if manifest.get("status") == "indexed" else manifest.get("status", "processed"),
