@@ -168,6 +168,9 @@ journalctl --user -u hve-intake.service --since "1 hour ago" --no-pager
 
 # Run the repository's intake validation
 bash scripts/validate-knowledge-intake.sh
+
+# Run the full local unit and DGX integration validation
+bash scripts/validate-hermes-integration.sh
 ```
 
 Deployment templates and secret-handling rules are documented in
