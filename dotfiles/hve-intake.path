@@ -1,0 +1,9 @@
+[Unit]
+Description=HVE Intake — Watch inbox for new PDFs
+
+[Path]
+PathChanged=/hve-library/intake/inbox
+Unit=hve-intake.service
+
+[Install]
+WantedBy=default.target

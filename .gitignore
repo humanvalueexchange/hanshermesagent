@@ -63,6 +63,7 @@ Thumbs.db
 
 # ── Test / build artefacts ────────────────────────────────────────────────────
 .pytest_cache/
+.test-link-collector/
 htmlcov/
 .coverage
 dist/

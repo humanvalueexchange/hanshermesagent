@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fcntl
 from pathlib import Path
 
 import lancedb
@@ -15,6 +17,18 @@ from common import iter_jsonl, load_manifest, now_iso, save_manifest
 
 MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5"
 TABLE_NAME = "library_chunks"
+
+
+@contextlib.contextmanager
+def index_lock(root: Path):
+    lock_path = root / "state" / "lancedb-write.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+b") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 class Embedder:
@@ -74,25 +88,29 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(args.root)
-    records = load_chunk_records(root)
-    if args.limit:
-        records = records[: args.limit]
-    if not records:
-        print(f"PASS records=0 root={root}")
-        return 0
+    with index_lock(root):
+        records = load_chunk_records(root)
+        if args.limit:
+            records = records[: args.limit]
+        if not records:
+            print(f"PASS records=0 root={root}")
+            return 0
 
-    model_cache = root / "state" / "model-cache"
-    embedder = Embedder(MODEL_NAME, model_cache)
-    embeddings = embedder.encode([record["text"] for record in records], "search_document")
-    for record, vector in zip(records, embeddings):
-        record["vector"] = vector
+        model_cache = root / "state" / "model-cache"
+        embedder = Embedder(MODEL_NAME, model_cache)
+        embeddings = embedder.encode([record["text"] for record in records], "search_document")
+        for record, vector in zip(records, embeddings):
+            record["vector"] = vector
 
-    db = lancedb.connect(str(root / "index" / "lancedb"))
-    db.create_table(TABLE_NAME, data=records, mode="overwrite")
+        db = lancedb.connect(str(root / "index" / "lancedb"))
+        db.create_table(TABLE_NAME, data=records, mode="overwrite")
+        indexed_document_ids = {record["document_id"] for record in records}
 
     manifest_dir = root / "state" / "manifests"
     for manifest_path in sorted(manifest_dir.glob("*.json")):
         manifest = load_manifest(manifest_path)
+        if manifest.get("document_id") not in indexed_document_ids:
+            continue
         manifest["index_status"] = "completed"
         manifest["indexed_at"] = now_iso()
         manifest["index_table"] = TABLE_NAME

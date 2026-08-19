@@ -1,0 +1,393 @@
+#!/usr/bin/env python3
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import fcntl
+import json
+import subprocess
+import time
+from pathlib import Path
+from typing import Callable, Iterator
+
+import yaml
+
+from build_manifest import manifest_for
+from chunk_text import process_manifest
+from common import clear_failure, load_manifest, now_iso, record_failure, save_manifest
+from extract_pdf_text import extract_text_with_metadata
+from finalize import finalize_pdf
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CONFIG_PATH = REPO_ROOT / "config" / "knowledge-layer" / "knowledge-layer.yaml"
+INDEX_SCRIPT = Path(__file__).with_name("index_link_chunks.py")
+VENV_PYTHON = Path.home() / ".hve-knowledge" / "venv" / "bin" / "python3"
+LOCK_PATH = "state/intake.lock"
+
+RunCommand = Callable[..., subprocess.CompletedProcess[str]]
+Emit = Callable[[str], None]
+
+
+def load_pipeline_config() -> dict:
+    return yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+
+
+def discover_inbox_pdfs(root: Path, specific_pdf: Path | None = None) -> list[Path]:
+    inbox_dir = root / "intake" / "inbox"
+    inbox_dir.mkdir(parents=True, exist_ok=True)
+    if specific_pdf:
+        return [specific_pdf] if specific_pdf.exists() else []
+    return sorted(path for path in inbox_dir.glob("*.pdf") if path.is_file())
+
+
+def claim_pdf(root: Path, pdf_path: Path) -> Path | None:
+    """Atomically transfer ownership of an inbox PDF to this worker."""
+    processing_dir = root / "intake" / "processing"
+    processing_dir.mkdir(parents=True, exist_ok=True)
+    destination = _unique_destination(processing_dir, pdf_path.name)
+    try:
+        pdf_path.replace(destination)
+    except FileNotFoundError:
+        return None
+    return destination
+
+
+@contextlib.contextmanager
+def intake_lock(root: Path) -> Iterator[bool]:
+    lock_path = root / LOCK_PATH
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("w", encoding="utf-8") as handle:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            yield False
+            return
+        yield True
+
+
+def _merge_manifest(existing: dict, record: dict) -> dict:
+    merged = {**existing, **record}
+    for key in (
+        "extraction_status",
+        "extraction_error",
+        "extracted_text_path",
+        "extracted_at",
+        "extraction_method",
+        "ocr_status",
+        "ocr_language",
+        "ocr_page_count",
+        "chunk_status",
+        "chunk_error",
+        "chunk_count",
+        "chunk_path",
+        "chunked_at",
+        "index_status",
+        "indexed_at",
+        "index_table",
+        "page_count",
+        "author",
+        "publisher",
+        "publication_year",
+        "language",
+        "status",
+        "failed_at",
+        "failed_stage",
+        "failure_error",
+    ):
+        if key in existing:
+            merged[key] = existing.get(key)
+    return merged
+
+
+def ensure_manifest(root: Path, pdf_path: Path) -> tuple[Path, dict, bool]:
+    manifest_dir = root / "state" / "manifests"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    record = manifest_for(pdf_path)
+    manifest_path = manifest_dir / f"{record['document_id']}.json"
+
+    if not manifest_path.exists():
+        save_manifest(manifest_path, record)
+        return manifest_path, record, False
+
+    existing = load_manifest(manifest_path)
+    existing_source = Path(existing.get("source_path", ""))
+    if (
+        existing.get("status") == "indexed"
+        and existing_source != pdf_path
+        and existing_source.exists()
+        and (root / "raw" / "pdfs") in existing_source.parents
+    ):
+        return manifest_path, existing, True
+
+    merged = _merge_manifest(existing, record)
+    merged["source_path"] = str(pdf_path)
+    save_manifest(manifest_path, merged)
+    return manifest_path, merged, False
+
+
+def extract_manifest(root: Path, manifest_path: Path, pdf_path: Path) -> tuple[bool, str | None]:
+    manifest = load_manifest(manifest_path)
+    text_path = root / "processed" / "text" / f"{manifest['document_id']}.txt"
+
+    if manifest.get("extraction_status") == "completed" and text_path.exists():
+        return True, None
+
+    ok, error, extraction_metadata = extract_text_with_metadata(pdf_path, text_path)
+    manifest["source_path"] = str(pdf_path)
+    manifest.update(extraction_metadata)
+    if ok:
+        manifest["extraction_status"] = "completed"
+        manifest["ingest_status"] = "extracted"
+        manifest["extracted_text_path"] = str(text_path)
+        manifest["extracted_at"] = now_iso()
+        manifest["extraction_error"] = None
+        clear_failure(root, manifest["document_id"], "extraction")
+    else:
+        manifest["extraction_status"] = "failed"
+        manifest["extraction_error"] = error
+    save_manifest(manifest_path, manifest)
+    return ok, error
+
+
+def batch_chunk_files(manifest_paths: list[Path]) -> list[Path]:
+    chunk_files: list[Path] = []
+    for manifest_path in manifest_paths:
+        manifest = load_manifest(manifest_path)
+        chunk_path_value = manifest.get("chunk_path")
+        if not chunk_path_value:
+            raise ValueError(f"missing chunk_path for {manifest_path.stem}")
+        chunk_path = Path(chunk_path_value)
+        if not chunk_path.exists():
+            raise ValueError(f"chunk file missing for {manifest_path.stem}: {chunk_path}")
+        chunk_files.append(chunk_path)
+    return chunk_files
+
+
+def run_index_build(
+    root: Path,
+    runner: RunCommand,
+    documents: list[tuple[Path, Path]],
+) -> tuple[bool, str]:
+    indexed_records = 0
+    for chunk_file, manifest_path in documents:
+        command = [
+            str(VENV_PYTHON),
+            str(INDEX_SCRIPT),
+            "--root",
+            str(root),
+            "--chunk-file",
+            str(chunk_file),
+            "--manifest",
+            str(manifest_path),
+        ]
+        result = runner(command, capture_output=True, text=True, check=False)
+        stdout = (result.stdout or "").strip()
+        stderr = (result.stderr or "").strip()
+        if result.returncode != 0:
+            return False, stderr or stdout or "index build failed"
+        try:
+            indexed_records += int(json.loads(stdout).get("records", 0))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return False, f"indexer returned invalid output for {manifest_path.stem}"
+    return True, f"PASS indexed_documents={len(documents)} records={indexed_records}"
+
+
+def _unique_destination(base_dir: Path, filename: str) -> Path:
+    candidate = base_dir / filename
+    stem = Path(filename).stem
+    suffix = Path(filename).suffix
+    index = 2
+    while candidate.exists():
+        candidate = base_dir / f"{stem}-{index}{suffix}"
+        index += 1
+    return candidate
+
+
+def quarantine_pdf(
+    root: Path,
+    pdf_path: Path,
+    manifest_path: Path | None,
+    stage: str,
+    error: str,
+    *,
+    mark_failure: bool = True,
+) -> Path:
+    failed_dir = root / "intake" / "failed"
+    failed_dir.mkdir(parents=True, exist_ok=True)
+    destination = _unique_destination(failed_dir, pdf_path.name)
+    if pdf_path.exists():
+        pdf_path.replace(destination)
+
+    if mark_failure and manifest_path and manifest_path.exists():
+        manifest = load_manifest(manifest_path)
+        manifest["source_path"] = str(destination)
+        manifest["ingest_status"] = "failed"
+        manifest["status"] = "failed"
+        manifest["failed_stage"] = stage
+        manifest["failed_at"] = now_iso()
+        manifest["failure_error"] = error
+        save_manifest(manifest_path, manifest)
+        record_failure(root, manifest["document_id"], stage, error)
+
+    return destination
+
+
+def run_pipeline(
+    root: Path,
+    *,
+    pdf_path: Path | None = None,
+    dry_run: bool = False,
+    runner: RunCommand = subprocess.run,
+    extractor: Callable[[Path, Path, Path], tuple[bool, str | None]] = extract_manifest,
+    chunker: Callable[[Path, Path, int, int], tuple[int, str | None]] = process_manifest,
+    finalizer: Callable[[Path, Path, Path | None], tuple[bool, str]] = finalize_pdf,
+    emit: Emit = print,
+    timer: Callable[[], float] = time.monotonic,
+) -> int:
+    config = load_pipeline_config()
+    chunk_size = int(config["retrieval"]["chunk_size_chars"])
+    overlap = int(config["retrieval"]["chunk_overlap_chars"])
+    pdfs = discover_inbox_pdfs(root, pdf_path)
+
+    if not pdfs:
+        emit(f"PASS indexed=0 failures=0 skipped=0 root={root}")
+        return 0
+
+    batch_start = timer()
+    failed = 0
+    skipped = 0
+    pending_finalize: list[tuple[Path, Path, float]] = []
+
+    for current_pdf in pdfs:
+        if dry_run:
+            if not current_pdf.exists():
+                emit(f"SKIPPED title={current_pdf.stem} reason=file disappeared before processing")
+                skipped += 1
+                continue
+        else:
+            claimed_pdf = claim_pdf(root, current_pdf)
+            if claimed_pdf is None:
+                emit(f"SKIPPED title={current_pdf.stem} reason=file disappeared before claim")
+                skipped += 1
+                continue
+            current_pdf = claimed_pdf
+        title = current_pdf.stem
+        started = timer()
+        emit(f"[STEP 1/6] manifest title={title}")
+        manifest_path, manifest, duplicate = ensure_manifest(root, current_pdf)
+        title = manifest.get("title", title)
+
+        if duplicate:
+            destination = quarantine_pdf(
+                root,
+                current_pdf,
+                None,
+                "duplicate",
+                "already indexed",
+                mark_failure=False,
+            )
+            emit(f"SKIPPED title={title} reason=already indexed path={destination.relative_to(root)}")
+            skipped += 1
+            continue
+
+        if dry_run:
+            emit(f"[STEP 2/6] extract title={title} dry-run")
+            emit(f"[STEP 3/6] chunk title={title} dry-run")
+            emit(f"[STEP 4/6] index title={title} dry-run")
+            emit(f"[STEP 5/6] finalize title={title} dry-run")
+            emit(f"[STEP 6/6] indexed title={title} dry-run")
+            continue
+
+        emit(f"[STEP 2/6] extract title={title}")
+        extracted, extract_error = extractor(root, manifest_path, current_pdf)
+        if not extracted:
+            destination = quarantine_pdf(root, current_pdf, manifest_path, "extraction", extract_error or "extract failed")
+            emit(f"FAILED title={title} step=extraction error={extract_error or 'extract failed'} path={destination.relative_to(root)}")
+            failed += 1
+            continue
+
+        emit(f"[STEP 3/6] chunk title={title}")
+        chunk_count, chunk_error = chunker(root, manifest_path, chunk_size, overlap)
+        if chunk_error:
+            destination = quarantine_pdf(root, current_pdf, manifest_path, "chunking", chunk_error)
+            emit(f"FAILED title={title} step=chunking error={chunk_error} path={destination.relative_to(root)}")
+            failed += 1
+            continue
+
+        pending_finalize.append((current_pdf, manifest_path, started))
+        emit(f"[STEP 4/6] index queued title={title} chunks={chunk_count}")
+
+    if dry_run:
+        emit(f"PASS dry_run=1 queued={len(pending_finalize)} failures=0 skipped={skipped} root={root}")
+        return 0
+
+    if pending_finalize:
+        emit(f"[STEP 4/6] build_lancedb_index count={len(pending_finalize)}")
+        try:
+            documents = [
+                (chunk_file, manifest_path)
+                for (current_pdf, manifest_path, _) in pending_finalize
+                for chunk_file in batch_chunk_files([manifest_path])
+            ]
+        except ValueError as error:
+            indexed = False
+            index_message = str(error)
+        else:
+            indexed, index_message = run_index_build(root, runner, documents)
+        emit(index_message)
+        if not indexed:
+            for current_pdf, manifest_path, _ in pending_finalize:
+                title = load_manifest(manifest_path).get("title", current_pdf.stem)
+                destination = quarantine_pdf(root, current_pdf, manifest_path, "indexing", index_message)
+                emit(f"FAILED title={title} step=indexing error={index_message} path={destination.relative_to(root)}")
+                failed += 1
+            pending_finalize = []
+
+    for current_pdf, manifest_path, started in pending_finalize:
+        title = load_manifest(manifest_path).get("title", current_pdf.stem)
+        emit(f"[STEP 5/6] finalize title={title}")
+        finalized, finalize_message = finalizer(root, current_pdf, manifest_path)
+        emit(finalize_message)
+        if not finalized:
+            destination = quarantine_pdf(root, current_pdf, manifest_path, "finalize", finalize_message)
+            emit(f"FAILED title={title} step=finalize error={finalize_message} path={destination.relative_to(root)}")
+            failed += 1
+            continue
+
+        finalized_manifest = load_manifest(manifest_path)
+        elapsed = timer() - started
+        emit(f"[STEP 6/6] indexed title={title}")
+        emit(
+            f"KNOWLEDGE_INDEXED document_id={manifest_path.stem} title={title} "
+            f"chunks={finalized_manifest.get('chunk_count', 0)} "
+            f"elapsed={elapsed:.2f}s source={finalized_manifest.get('source_path', '')}"
+        )
+
+    total_elapsed = timer() - batch_start
+    emit(
+        f"RESULT indexed={len(pending_finalize)} failures={failed} skipped={skipped} "
+        f"elapsed={total_elapsed:.2f}s root={root}"
+    )
+    return 1 if failed else 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Run the HVE intake pipeline for inbox PDFs.")
+    parser.add_argument("--root", default="/hve-library", help="Knowledge-layer root path")
+    parser.add_argument("--pdf", help="Optional specific PDF in intake/inbox to process")
+    parser.add_argument("--dry-run", action="store_true", help="Print steps without mutating files")
+    args = parser.parse_args()
+
+    root = Path(args.root)
+    pdf_path = Path(args.pdf) if args.pdf else None
+    with intake_lock(root) as acquired:
+        if not acquired:
+            print("SKIPPED reason=another intake worker is active")
+            return 0
+        return run_pipeline(root, pdf_path=pdf_path, dry_run=args.dry_run)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

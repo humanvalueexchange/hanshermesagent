@@ -57,6 +57,10 @@ def manifest_for(path: Path) -> dict:
         "extraction_status": "pending",
         "extraction_error": None,
         "extracted_text_path": None,
+        "extraction_method": None,
+        "ocr_status": "not_attempted",
+        "ocr_language": "eng",
+        "ocr_page_count": 0,
         "manifest_version": MANIFEST_VERSION,
         "pipeline_version": PIPELINE_VERSION,
     }
