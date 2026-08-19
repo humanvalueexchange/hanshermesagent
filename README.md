@@ -1,189 +1,160 @@
-# Hermes — Sovereign AI CFO & Treasury Agent
+# Hermes - Sovereign AI CFO and Knowledge Agent
 
-**Status:** Active — running 24/7 on NVIDIA DGX Spark  
-**Version:** 0.15.2 (hermes-agent v2026.5.29.2)  
-**Architecture:** Platonic 3-model stack — all models ≥131K context  
-**Hardware:** NVIDIA DGX Spark · 128 GB unified memory · ARM64 / aarch64  
+Hermes is Human Value Exchange's local AI operating system for CFO work,
+treasury intelligence, agent coordination, and durable knowledge capture. It
+runs on the NVIDIA DGX Spark and is operated as a local-first, systemd-managed
+service stack.
 
----
+**Runtime:** DGX OS / Ubuntu 24.04-based, ARM64, 128 GB unified memory
+**Primary gateway:** `hanshermesagent` Telegram channel
+**Repository:** `humanvalueexchange/hermes-cfo`
 
-## What Hermes Is
+## Current model configuration
 
-Hermes is the Chief Financial Officer of Human Value Exchange — a sovereign AI treasury agent running locally on the DGX Spark. No cloud. No subscriptions. Sovereign treasury intelligence, running 24/7.
+Ollama is the local model runtime. The approved hot set on the DGX Spark is:
 
-Hermes monitors balances, enforces treasury policy, reports to the CEO via Telegram, and coordinates with Mercury (Bitcoin Lightning node) for real-time payment intelligence.
+| Purpose | Model | Current context |
+|---|---|---:|
+| Primary Hermes reasoning and orchestration | `qwen3.5:27b-128k` | 131,072 |
+| Coding and fallback reasoning | `gpt-oss:20b` | 131,072 |
+| Lightweight derivation and utility work | `qwen2.5:3b` | 32,768 |
+| Embeddings | `nomic-embed-text:latest` | 2,048 |
 
----
+The models are served locally through Ollama with persistent keep-alive
+settings. Additional models may exist on disk, but are not part of the
+approved hot set.
 
-## Model Stack — Platonic 3-Model Architecture
+### Embedding migration status
 
-| Role | Model | Context | RAM | Purpose |
-|---|---|---|---|---|
-| **Conductor / CFO Brain** | `qwen3.5:9b` | 128K | 6.6 GB | Orchestrates decisions, synthesizes all outputs |
-| **Clarifier / Research** | `mistral-small:24b` | 131K | 14 GB | Market analysis, strategy research, synthesis |
-| **Executor** | `nemotron-3-nano:30b` | 131K | 24 GB | Position sizing, fee calculations, tool calls |
+The knowledge indexer currently uses the local cached
+`nomic-ai/nomic-embed-text-v1.5` Transformers implementation in offline mode.
+The planned migration to Ollama `/api/embed` using `nomic-embed-text` has not
+yet been completed. No cloud fallback is permitted.
 
-**Total GPU load: ~45 GB of 128 GB unified memory (~83 GB headroom)**
+## Runtime services
 
-All models run via **Ollama** (native binary, systemd-managed). All pinned with `OLLAMA_KEEP_ALIVE=-1` — never unloaded.
-
-> **Architecture decision (2026-05-30, swap 1):** `gemma2:27b` deprecated as Conductor. Its 8K context window caused session crashes under real-world load (SOUL.md + MCP tool defs alone consume ~4,000 tokens). Replaced with `qwen3.5:27b` (262K context).
->
-> **Architecture decision (2026-05-30, swap 2):** `qwen3.5:27b` swapped to `qwen3.5:9b` as Conductor. 27b was over-provisioned — 9b delivers identical quality at 6.6 GB vs 17 GB loaded, freeing ~10 GB headroom and improving first-token latency (Issue #26).
-
----
-
-## Architecture
-
-```
-CEO (Hans) ──Telegram──▶ Hermes Gateway
-                              │
-                    ┌─────────┴──────────┐
-                    │   Conductor        │  qwen3.5:9b (128K ctx)
-                    │   (CFO Brain)      │
-                    └─────────┬──────────┘
-                              │
-                 ┌────────────┴────────────┐
-                 ▼                         ▼
-            Research                   Executor
-       mistral-small:24b         nemotron-3-nano:30b
-       (Analysis/Strategy)       (Math/Code/Tool Calls)
-                 │
-                 ▼
-            MCP Tools
-            ┌──────────────────────────────┐
-            │ get_node_diagnostic          │
-            │ get_btc_forecast             │
-            │ get_market_intelligence      │
-            │ get_mempool_fees             │
-            │ get_mempool_depth            │
-            │ get_block_status             │
-            │ get_lightning_network_stats  │
-            │ get_morning_briefing         │
-            │ get_client_context           │
-            │ get_capability_assessment    │
-            │ search_knowledge_vault       │
-            │ create_task                  │
-            │ suggest_backlog_issue        │
-            │ vote_backlog_issue           │
-            │ read_github_issue            │
-            │ comment_github_issue         │
-            │ list_github_issues           │
-            └──────────────────────────────┘
-
-                  Native Skills
-            ┌──────────────────────────────┐
-            │ bitcoin-intelligence         │
-            │ node-health                  │
-            │ treasury-operations          │
-            │ knowledge-management         │
-            │ backlog-management           │
-            └──────────────────────────────┘
-```
-
----
-
-## Infrastructure
-
-| Component | Detail |
+| Service | Role |
 |---|---|
-| **Hardware** | NVIDIA DGX Spark, 128 GB unified LPDDR5x |
-| **OS** | DGX OS (Ubuntu 24.04-based), aarch64 |
-| **Ollama** | Native binary, `/usr/local/bin/ollama`, systemd |
-| **hermes-agent** | `0.15.2` (v2026.5.29.2) — pip install in venv |
-| **Gateway** | `~/.hermes/` — systemd user service |
-| **Config** | `~/.hermes/profiles/main/config.yaml` (never committed — contains secrets) |
-| **MCP** | `~/.hermes-mcp.env` (API keys, never committed) |
-| **Open WebUI** | `0.9.5` — debug console at `[DGX_LAN_IP]:8080` |
-| **Comms** | Telegram (inbound/outbound), Mattermost (reports) |
-| **LAN IP** | `[DGX_LAN_IP]` (static Ethernet, permanent) |
+| `hermes-gateway-hanshermesagent.service` | Telegram-facing Hermes gateway |
+| `hermes-mcp.service` | Local MCP server on port `8765` |
+| `hermes-telegram-log.service` | Telegram audit/log watcher |
+| `hermes-browser.service` | Persistent browser session for Hermes tools |
+| `hve-intake.path` | Watches the PDF intake inbox |
+| `hve-intake.service` | Extracts, chunks, indexes, and archives PDFs |
 
----
+The live gateway and MCP configuration contain secrets and are intentionally
+outside Git:
 
-## Repository Structure
-
+```text
+~/.hermes/
+~/.hermes-mcp.env
+~/.config/systemd/user/
 ```
+
+## Knowledge intake
+
+Telegram is used as a strict knowledge collector for links and PDFs. The
+collector preserves source material and provenance rather than treating a
+conversation as the durable knowledge store.
+
+```text
+Telegram link/PDF
+        |
+        v
+/hve-library/intake/inbox
+        |
+        v
+atomic claim -> /hve-library/intake/processing
+        |
+        +--> native pdftotext extraction
+        |       or local Tesseract OCR for scanned PDFs
+        |
+        v
+page-aware chunks -> LanceDB
+        |
+        v
+/hve-library/raw/pdfs
+```
+
+The intake worker uses an exclusive lock so a watcher-triggered run and a
+manual collector run cannot process the same file concurrently. PDF uploads
+are copied to a `.part` file and atomically renamed only after completion.
+Duplicates are detected by SHA-256 and do not create duplicate LanceDB rows.
+
+OCR is fully local:
+
+- Native text extraction is preferred.
+- Scanned pages are rendered with `pdftoppm`.
+- Tesseract runs on CPU with English language data.
+- OCR metadata is preserved in each manifest.
+- No cloud OCR or Hugging Face network access is used during intake.
+
+## Knowledge storage layout
+
+The durable knowledge root is `/hve-library`:
+
+| Path | Purpose |
+|---|---|
+| `intake/inbox` | New collector submissions |
+| `intake/processing` | Atomically claimed files owned by the worker |
+| `intake/failed` | Failed or duplicate quarantine |
+| `raw/pdfs` | Canonical archived PDFs |
+| `raw/links` | Canonical archived web pages |
+| `processed/text` | Extracted and OCR text |
+| `processed/chunks` | Retrieval chunks |
+| `state/manifests` | Provenance and pipeline state |
+| `index/lancedb` | Semantic retrieval index |
+| `vault/hve-knowledge-vault` | Human-facing Obsidian vault |
+
+Honcho remains appropriate for conversational and episodic context. The
+library, manifests, LanceDB, and Obsidian vault provide durable evidence and
+human-auditable knowledge.
+
+## Repository structure
+
+```text
 hermes-cfo/
-├── README.md                         ← you are here
-├── VERSION.md                        ← single source of truth for all component versions
-├── docs/
-│   └── SOUL.md                       ← REMOVED — see dotfiles/SOUL.md
-├── dotfiles/
-│   ├── SOUL.md                       ← Hermes identity + always-on guardrails (deploy → ~/.hermes/profiles/main/)
-│   ├── hermes-*.service              ← systemd unit files
-│   └── inject-market-data.sh        ← pre-LLM hook: live BTC price injection
-├── config/
-│   ├── hermes-config.template.yaml   ← config template (secrets as ${PLACEHOLDERS})
-│   └── hermes-env.template           ← .env template — what secrets are needed
-├── skills/
-│   └── hve/                          ← native Hermes SKILL.md playbooks loaded via skills.external_dirs
-├── mcp/
-│   ├── server.py                     ← Hermes MCP server entrypoint
-│   └── tools/knowledge/search.py     ← LanceDB semantic search script run via knowledge venv
-│   └── market_intelligence.py        ← prediction-market intelligence helper
-├── tools/
-│   ├── mempool/                      ← mempool.space on-chain + Lightning MCP helpers
-│   ├── knowledge.py                  ← server-side knowledge search orchestration + fallback
-│   └── *.py                          ← treasury/runtime support utilities
-└── scripts/
-    ├── hermes-install.sh             ← bootstrap on fresh DGX Spark
-    ├── hermes-deploy.sh              ← deploy config changes to live runtime
-    ├── hermes-update.sh              ← daily self-update cron (03:00 UTC, Telegram notify)
-    └── test-tool-enforcement.sh      ← MCP tool call regression tests (Issue #2)
+├── config/                    Runtime and knowledge-layer configuration
+├── cron/                      Scheduled CFO and briefing jobs
+├── dotfiles/                  Deployable systemd units, hooks, and templates
+├── knowledge/layer/            Extraction, OCR, chunking, indexing, finalization
+├── mcp/                       Hermes MCP server and collector/library servers
+├── skills/                    Native Hermes skill playbooks
+├── tools/                     Link, PDF, knowledge, and treasury utilities
+├── scripts/                   Installation, deployment, validation, and diagnostics
+├── tests/                     MCP, collector, and intake tests
+├── VERSION.md                 Component version manifest
+└── README.md                  This operational overview
 ```
 
----
+## Common operations
 
-## Engineering Team (v3.0)
+```bash
+# Inspect the local model set and loaded models
+ollama list
+ollama ps
 
-| Role | Agent | Model |
-|---|---|---|
-| Chief Architect / CTO | Claude | Sonnet 4.6 (GitHub Copilot CLI, DGX Spark) |
-| Prime Developer | Vulcan | GPT-5.4 (G16 / WSL Ubuntu) |
-| Lead Test Engineer | Grok Build | Grok 4.3 (xAI Grok CLI, DGX Spark) |
+# Inspect Hermes and intake services
+systemctl --user status hermes-gateway-hanshermesagent.service
+systemctl --user status hermes-mcp.service
+systemctl --user status hve-intake.service
+journalctl --user -u hve-intake.service --since "1 hour ago" --no-pager
 
-**Workflow:** Claude specs → Vulcan builds → Grok Build tests on DGX Spark → Claude merges → Deploy via `hermes-deploy.sh`
+# Run the repository's intake validation
+bash scripts/validate-knowledge-intake.sh
+```
 
-All design disagreements are filed as GitHub issues — never resolved quietly.
+Deployment templates and secret-handling rules are documented in
+[`dotfiles/README.md`](dotfiles/README.md) and [`SECURITY.md`](SECURITY.md).
 
----
+## Sovereignty boundary
 
-## Developer Roadmap
-
-Issues in this repo are the canonical Hermes feature backlog.  
-Labels follow the same convention as [Mercury](https://github.com/humanvalueexchange/mercury):
-
-| Label | Meaning |
-|---|---|
-| `feature` | Confirmed build item |
-| `idea` | Proposed, needs scoring |
-| `research` | Needs investigation before building |
-| `priority:P0` | Critical path |
-| `domain:treasury` | Financial / treasury domain |
-| `domain:ai` | Model / agent architecture |
-| `domain:security` | Security & risk |
-| `domain:reporting` | Reporting & comms |
-| `domain:integration` | Cross-agent / external integrations |
-| `scheduled:tonight` | Tonight's build target |
+Hermes is designed to run without Docker, cloud inference, cloud OCR, or
+required external memory services. Ollama, Tesseract, Poppler, SQLite-backed
+state, LanceDB, and the Obsidian vault remain local to the DGX Spark. Network
+access is limited to explicitly enabled integrations such as Telegram,
+WhatsApp delivery, GitHub tools, and approved market-data sources.
 
 ---
 
-## Relation to Mercury
-
-Mercury (Chief Bitcoin Officer) runs on Raspberry Pi 5 — edge node, Lightning payments, point-of-sale.  
-Hermes runs on the DGX Spark — treasury intelligence, portfolio oversight, CFO reporting.
-
-Mercury feeds daily revenue data → Hermes consolidates into treasury view.
-
----
-
-## Sovereign Stack Principle
-
-> Native binary + systemd. No Docker. No cloud. No Snap.  
-> Every abstraction layer removed is one fewer failure point.
-
-Hermes runs closest to the metal. That's by design.
-
----
-
-*Human Value Exchange · CTO: Claude (Sonnet 4.6) · CEO: Hans Westphal*
+Human Value Exchange - CEO: Hans Westphal
