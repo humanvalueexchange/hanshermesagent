@@ -12,9 +12,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
-MATTERMOST_ENV_PATH = Path.home() / ".hve" / "mattermost.env"
-
-
 REPO_DIR = Path.home() / "hermes-cfo"
 BRIEFINGS_DIR = REPO_DIR / "logs" / "briefings"
 HERMES_ROOT = Path.home() / ".hermes"
@@ -30,7 +27,6 @@ USER_SERVICE_NAMES = (
     "hermes-telegram-log",
     "hermes-freqtrade",
 )
-
 
 @dataclass
 class Forecast:
@@ -211,41 +207,3 @@ def build_btc_forecast() -> Forecast:
         invalidation=invalidation,
         source=source,
     )
-
-
-def _load_mm_env() -> dict[str, str]:
-    """Parse ~/.hve/mattermost.env into a dict of key→value."""
-    env: dict[str, str] = {}
-    if not MATTERMOST_ENV_PATH.exists():
-        return env
-    for line in MATTERMOST_ENV_PATH.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, val = line.partition("=")
-        env[key.strip()] = val.strip()
-    return env
-
-
-def post_to_mattermost(text: str, channel_key: str = "TREASURY", username: str = "Hermes CFO") -> bool:
-    """Post text to a Mattermost channel via incoming webhook.
-
-    channel_key maps to HVE_MM_WEBHOOK_<channel_key> in ~/.hve/mattermost.env.
-    Returns True on success, False on any failure (never raises).
-    """
-    env = _load_mm_env()
-    webhook_url = env.get(f"HVE_MM_WEBHOOK_{channel_key.upper()}")
-    if not webhook_url:
-        return False
-    payload = json.dumps({"text": text, "username": username}).encode("utf-8")
-    req = urllib.request.Request(
-        webhook_url,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310
-            return resp.status == 200
-    except Exception:  # noqa: BLE001
-        return False

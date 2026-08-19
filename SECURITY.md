@@ -52,6 +52,6 @@ This repository holds **configuration templates, scripts, agent definitions, and
 
 This is an internal company repo. Report security issues directly to:
 
-**Hans Westphal (CEO)** — via Mattermost direct message or Telegram.
+**Hans Westphal (CEO)** — via WhatsApp direct message or Telegram.
 
 Do not open a public GitHub issue for active security vulnerabilities.

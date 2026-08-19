@@ -74,7 +74,11 @@ Telegram is used as a strict knowledge collector for links and PDFs. The
 collector preserves source material and provenance rather than treating a
 conversation as the durable knowledge store.
 
-```text
+```
+
+Honcho is the durable Hermes knowledge and memory layer. Telegram is reserved
+for link/PDF ingestion, while WhatsApp is the primary human-facing channel for
+Hermes communications and scheduled briefings.text
 Telegram link/PDF
         |
         v

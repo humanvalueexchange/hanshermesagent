@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from common import build_btc_forecast, post_to_mattermost, today_str
+from common import build_btc_forecast, today_str
 
 
 def main() -> int:
@@ -22,15 +22,6 @@ def main() -> int:
     print(f"- invalidation condition: {forecast.invalidation}")
     print(f"- source: {forecast.source}")
     print(f"- run date: {today_str()}")
-    direction_emoji = "📈" if forecast.direction == "up" else "📉" if forecast.direction == "down" else "➡️"
-    post_to_mattermost(
-        f"### {direction_emoji} BTC Forecast — {today_str()}\n"
-        f"- Current: **${forecast.current_price:,.0f}**\n"
-        f"- Predicted 09:30 ET: **${forecast.predicted_price:,.0f}**\n"
-        f"- Direction: {forecast.direction} | Confidence: {forecast.confidence}\n"
-        f"- {forecast.rationale}",
-        channel_key="TREASURY",
-    )
     return 0
 
 

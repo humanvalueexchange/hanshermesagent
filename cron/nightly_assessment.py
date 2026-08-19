@@ -18,7 +18,6 @@ from common import (
     iso_now,
     load_cron_jobs,
     markdown_list,
-    post_to_mattermost,
     system_service_state,
     today_str,
     user_service_state,
@@ -145,23 +144,11 @@ Generated: {iso_now()}
         print("PASS")
         for path in paths:
             print(f"- {path}")
-        post_to_mattermost(
-            "### ✅ Hermes Nightly Assessment — PASS\n"
-            "All three mandatory trade-lane artifacts generated successfully:\n"
-            + "\n".join(f"- `{path.name}`" for path in paths),
-            channel_key="OPS",
-        )
         return 0
 
     print("FAIL")
     for path in paths:
         print(f"- {path}: missing or empty")
-    post_to_mattermost(
-        "### ❌ Hermes Nightly Assessment — FAIL\n"
-        "One or more mandatory artifacts missing — rerun `bootstrap-hermes-cron.sh`:\n"
-        + "\n".join(f"- `{path.name}`: missing or empty" for path in paths if not path.exists() or path.stat().st_size == 0),
-        channel_key="ALERTS",
-    )
     return 1
 
 

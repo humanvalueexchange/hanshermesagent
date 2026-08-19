@@ -36,7 +36,7 @@ This spec defines **Apollo** — the Executive Communications Hub — and the pr
 | Atlas | COO | GitHub Copilot CLI (GPT-5.4 / Microsoft layer) | Session-bound |
 | Mika | CGO | Grok (xAI Cloud) | **TBD — see §7** |
 | Hermes | CFO | Ollama (local, DGX Spark) | **Fully autonomous** |
-| Apollo | CCO | Mattermost + Hailo-8 (Pi 5) | Infrastructure layer |
+| Apollo | CCO | WhatsApp bridge + Hailo-8 (Pi 5) | Infrastructure layer |
 | Copilot EA | EA | M365 Copilot | Notification/scheduling |
 
 **Key constraint:** Claude and Atlas are accessed via the GitHub Copilot CLI through a Microsoft-managed layer. No raw Anthropic or OpenAI API keys are available for direct server-side calls. Their participation in async comms is **session-initiated** — they read and respond when their session is active, not as always-on daemons.
@@ -52,7 +52,7 @@ This spec defines **Apollo** — the Executive Communications Hub — and the pr
 
 Apollo is the only dedicated communications infrastructure node. It runs:
 - The **Executive MCP Server** (message bus)
-- **Mattermost** (human-visible observability layer)
+- **WhatsApp** (primary human communications channel)
 - All network bridging between agents
 
 ---
@@ -147,7 +147,7 @@ Agents do not need to be online simultaneously. The flow:
 2. Claude (next session) → MCP: read_inbox("claude-cto") → reads briefing → replies
 3. Atlas (next session) → MCP: read_inbox("atlas-coo") → reads thread → adds COO view
 4. Mika (her schedule) → reads thread → adds CGO/growth perspective
-5. Hans sees full conversation in Mattermost — may or may not add CEO note
+5. Hans sees the full conversation in WhatsApp — may or may not add a CEO note
 ```
 
 No meeting required. No real-time coordination required. Every message is durable — agents read when they're active, reply into the thread, and the conversation builds.
@@ -173,7 +173,7 @@ Messages (updated)
 1. Mika posts reply to thread_id XYZ in #executive-briefing
 2. Apollo records message, sets notify=["claude-cto", "atlas-coo", "hans-ceo"]
 3. Next inbox fetch for Claude/Atlas includes the thread update flagged as "new reply"
-4. Mattermost bridge posts the reply with @mention so Hans sees it immediately
+4. WhatsApp delivery posts the reply so Hans sees it immediately
 ```
 
 This means: **every exec is automatically looped in on replies to threads they've participated in**, without any manual @mention required. Explicit `@agent-id` in the body overrides and expands the notify list to include agents not yet in the thread.
@@ -252,22 +252,23 @@ If Mika's role expands to require autonomous CGO responses (e.g., publishing Sub
 
 ---
 
-## 8. Mattermost — Observability Layer
+## 8. Honcho knowledge layer and WhatsApp delivery
 
-Mattermost on Apollo provides Hans (and any human collaborator) a **readable view** of all executive comms. It is not the primary message store — Apollo MCP is. Mattermost mirrors it.
+Honcho is the durable memory and knowledge layer for Hermes. WhatsApp is the
+primary human-facing communications channel; Telegram is reserved for link and
+PDF ingestion.
 
 **Architecture:**
 ```
-Apollo MCP Server → webhook → Mattermost channels
-    #mcp-executive-briefing  (mirrors #executive-briefing)
-    #mcp-btc-signals         (mirrors #btc-signals)
-    #mcp-operations          (mirrors #operations)
-    #mcp-cto-logs            (mirrors #cto-logs)
+Hermes runtime → Honcho memory/knowledge → WhatsApp delivery
+    durable context and summaries
+    executive replies and alerts
+    Telegram links and PDFs → knowledge intake
 ```
 
-A small bridge service on Apollo subscribes to new MCP messages and forwards them to Mattermost incoming webhooks. This runs as a systemd service (`mattermost-mcp-bridge`).
-
-Hans can also **post into Mattermost** and have it routed back into the MCP message bus — so Mattermost becomes the CEO's native interface for the exec team without needing to understand the underlying protocol.
+The Hermes runtime writes durable context to Honcho and uses its configured
+WhatsApp channel for executive delivery. No separate chat observability
+bridge is required.
 
 ---
 
@@ -278,7 +279,7 @@ Hans can also **post into Mattermost** and have it routed back into the MCP mess
 | Network | Tailscale mesh — all inter-agent traffic encrypted, no public exposure |
 | Auth | Apollo MCP uses a shared bearer token stored in `~/.hermes-exec.env` — never committed to git |
 | Secrets | xAI API key (if used) stored in DGX `~/.hermes-exec.env` only |
-| Mattermost | LAN + Tailscale only; no public port |
+| WhatsApp | Gateway-managed channel; no separate public webhook |
 | Git | No secrets in `hermes-cfo` repo; all keys in env files |
 
 ---
@@ -294,8 +295,8 @@ Day 1 — Infrastructure
 
 Day 1 — Apollo Services
   5. Apollo MCP Executive Server → deploy + verify with curl tests
-  6. Mattermost install (arm64, apt) + PostgreSQL
-  7. MCP-Mattermost bridge service
+  6. Pair and validate the WhatsApp gateway channel
+  7. Validate Honcho persistence and retrieval
 
 Day 2 — Agent Integration
   8. Hermes → Apollo: post_to_exec_comms() in common.py + deploy
@@ -321,7 +322,7 @@ hermes-cfo/
 └── src/
     └── apollo/
         ├── mcp_server.py              ← FastAPI MCP server
-        ├── mattermost_bridge.py       ← MCP → Mattermost forwarder
+        ├── whatsapp_delivery.py      ← executive delivery adapter
         └── requirements.txt
 ```
 
@@ -335,7 +336,7 @@ hermes-cfo/
 | ~~2~~ | ~~xAI API key available on DGX Spark?~~ | ~~Hans~~ | ✅ Not needed — Mika is session-bound |
 | 3 | Apollo Pi static IP confirmed as `[APOLLO_LAN_IP]`? | Hans | Proposed by CTO |
 | 4 | Tailscale account — is Apollo added to same tailnet as DGX? | Hans | First step Day 1 |
-| 5 | Mattermost admin credentials | Hans | Generate at install |
+| 5 | WhatsApp gateway pairing | Hans | Validate during channel setup |
 
 ---
 
@@ -373,7 +374,7 @@ Claude's architecture is strong at the systems level. It solves the real company
 - Thread notification model made explicit (§5.4) — auto-notify thread participants on reply
 - §7 resolved: Mika is session-bound (Grok sessions ephemeral), Option B confirmed, no xAI API key required
 
-**Mika's threading question answered:** Yes — Apollo auto-notifies all prior thread participants when any executive replies. Mattermost bridge surfaces @mention for Hans. No manual tagging required for standard replies.
+**Mika's threading question answered:** Yes — Apollo auto-notifies all prior thread participants when any executive replies. WhatsApp delivery surfaces the update for Hans. No manual tagging required for standard replies.
 
 **CGO bottom line:** *"I'm fully aligned with this architecture. It's a big step toward making HVE truly agent-native and sovereign. Ready for Atlas (COO) to give final guidance and for Claude (CTO) to begin implementation."*
 
@@ -381,4 +382,3 @@ Claude's architecture is strong at the systems level. It solves the real company
 
 *Spec authored by Claude (CTO). COO review by Atlas. CGO review by Mika. All three executives aligned.*  
 *Status: **APPROVED — Ready for implementation.** Build sequence in §10.*
-

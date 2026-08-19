@@ -76,6 +76,7 @@ checks = [
     (live.get("model", {}).get("default") == primary, "primary model"),
     (provider_config.get("default_model") == primary, "provider default model"),
     (set(provider_config.get("models") or []) == expected_models, "approved Ollama model catalog"),
+    (live.get("memory", {}).get("provider") == "honcho", "Honcho memory provider"),
     (live.get("security", {}).get("allow_private_urls") is False, "private URL protection"),
     (live.get("security", {}).get("tirith_fail_open") is False, "Tirith fail-closed mode"),
 ]

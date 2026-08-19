@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from common import BRIEFINGS_DIR, build_btc_forecast, get_last_cron_output, iso_now, post_to_mattermost, today_str
+from common import BRIEFINGS_DIR, build_btc_forecast, get_last_cron_output, today_str
 
 
 def main() -> int:
@@ -71,15 +71,6 @@ def main() -> int:
     print("- Review the three dated reports.")
     print("- Compare the 09:30 ET forecast against realized market behavior.")
     print("- Keep the knowledge lane deferred until the trade lane proves repeatable.")
-    direction_emoji = "📈" if forecast.direction == "up" else "📉" if forecast.direction == "down" else "➡️"
-    post_to_mattermost(
-        f"### 🌅 Hermes Morning Briefing — {today}\n"
-        f"- Overnight artifacts: ✅ all three trade-lane reports generated\n"
-        f"- Trading posture: paper-mode / validation-first\n"
-        f"- BTC {direction_emoji} {forecast.direction} | ${forecast.current_price:,.0f} now → ${forecast.predicted_price:,.0f} predicted 09:30 ET | confidence: {forecast.confidence}\n"
-        f"- Skill: {skill_detail}",
-        channel_key="TREASURY",
-    )
     return 0
 
 

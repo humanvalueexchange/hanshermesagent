@@ -289,17 +289,12 @@ matrix:
   allowed_rooms: ''
   free_response_rooms: ''
   require_mention: true
-mattermost:
-  allowed_channels: ''
-  channel_prompts: {}
-  free_response_channels: ''
-  require_mention: true
 memory:
   flush_min_turns: 6
   memory_char_limit: 2200
   memory_enabled: true
   nudge_interval: 10
-  provider: ''
+  provider: honcho
   user_char_limit: 1375
   user_profile_enabled: true
 model:
