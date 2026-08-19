@@ -8,6 +8,7 @@ import fcntl
 import json
 import subprocess
 import time
+import uuid
 from pathlib import Path
 from typing import Callable, Iterator
 
@@ -18,6 +19,7 @@ from chunk_text import process_manifest
 from common import clear_failure, load_manifest, now_iso, record_failure, save_manifest
 from extract_pdf_text import extract_text_with_metadata
 from finalize import finalize_pdf
+from index_link_chunks import restore_document, snapshot_document
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -242,6 +244,71 @@ def quarantine_pdf(
     return destination
 
 
+def _write_batch_journal(path: Path, journal: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".part")
+    temporary.write_text(json.dumps(journal, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
+
+
+def _new_batch_journal(root: Path, pending: list[tuple[Path, Path, float]]) -> tuple[Path, dict]:
+    batch_id = f"{now_iso().replace(':', '').replace('+00:00', 'Z')}-{uuid.uuid4().hex[:8]}"
+    journal = {
+        "version": 1,
+        "batch_id": batch_id,
+        "status": "active",
+        "created_at": now_iso(),
+        "documents": [
+            {
+                "document_id": manifest_path.stem,
+                "pdf_path": str(pdf_path),
+                "manifest_path": str(manifest_path),
+                "manifest_before": load_manifest(manifest_path),
+                "previous_rows": None,
+                "indexed": False,
+            }
+            for pdf_path, manifest_path, _ in pending
+        ],
+    }
+    path = root / "state" / "intake-batches" / f"{batch_id}.json"
+    _write_batch_journal(path, journal)
+    return path, journal
+
+
+def _rollback_batch(root: Path, journal_path: Path, journal: dict, reason: str) -> None:
+    for entry in reversed(journal["documents"]):
+        original_pdf = Path(entry["pdf_path"])
+        manifest_path = Path(entry["manifest_path"])
+        current_manifest = load_manifest(manifest_path)
+        current_source = Path(str(current_manifest.get("source_path", original_pdf)))
+        if current_source != original_pdf and current_source.exists():
+            original_pdf.parent.mkdir(parents=True, exist_ok=True)
+            if not original_pdf.exists():
+                current_source.replace(original_pdf)
+        rows = entry["previous_rows"]
+        if rows is None:
+            rows = []
+        restore_document(root, entry["document_id"], rows)
+        save_manifest(manifest_path, entry["manifest_before"])
+    journal["status"] = "rolled_back"
+    journal["rolled_back_at"] = now_iso()
+    journal["rollback_reason"] = reason
+    _write_batch_journal(journal_path, journal)
+
+
+def recover_incomplete_batches(root: Path, emit: Emit = print) -> None:
+    batch_dir = root / "state" / "intake-batches"
+    if not batch_dir.exists():
+        return
+    for journal_path in sorted(batch_dir.glob("*.json")):
+        journal = json.loads(journal_path.read_text(encoding="utf-8"))
+        if journal.get("status") not in {"active", "indexed"}:
+            continue
+        reason = f"recovered interrupted batch {journal.get('batch_id', journal_path.stem)}"
+        _rollback_batch(root, journal_path, journal, reason)
+        emit(f"ROLLED_BACK batch={journal.get('batch_id', journal_path.stem)} reason={reason}")
+
+
 def run_pipeline(
     root: Path,
     *,
@@ -257,6 +324,7 @@ def run_pipeline(
     config = load_pipeline_config()
     chunk_size = int(config["retrieval"]["chunk_size_chars"])
     overlap = int(config["retrieval"]["chunk_overlap_chars"])
+    recover_incomplete_batches(root, emit)
     pdfs = discover_inbox_pdfs(root, pdf_path)
 
     if not pdfs:
@@ -334,40 +402,84 @@ def run_pipeline(
         return 0
 
     if pending_finalize:
+        journal_path, journal = _new_batch_journal(root, pending_finalize)
         indexed_pending: list[tuple[Path, Path, float]] = []
-        for current_pdf, manifest_path, started in pending_finalize:
-            title = load_manifest(manifest_path).get("title", current_pdf.stem)
-            emit(f"[STEP 4/6] build_lancedb_index title={title}")
+        index_failure: tuple[Path, Path, str] | None = None
+        snapshot_error: str | None = None
+        for entry in journal["documents"]:
             try:
-                documents = [
-                    (chunk_file, manifest_path)
-                    for chunk_file in batch_chunk_files([manifest_path])
-                ]
-                indexed, index_message = run_index_build(root, runner, documents)
-            except ValueError as error:
-                indexed = False
-                index_message = str(error)
-            emit(index_message)
-            if not indexed:
-                destination = quarantine_pdf(root, current_pdf, manifest_path, "indexing", index_message)
-                emit(f"FAILED title={title} step=indexing error={index_message} path={destination.relative_to(root)}")
-                failed += 1
-                continue
-            indexed_pending.append((current_pdf, manifest_path, started))
-        pending_finalize = indexed_pending
+                entry["previous_rows"] = snapshot_document(root, entry["document_id"])
+            except (OSError, RuntimeError, ValueError) as error:
+                snapshot_error = str(error)
+                break
+        if snapshot_error:
+            journal["status"] = "snapshot_failed"
+            journal["snapshot_failed_at"] = now_iso()
+            journal["snapshot_error"] = snapshot_error
+            _write_batch_journal(journal_path, journal)
+            emit(f"FAILED step=rollback_snapshot error={snapshot_error}")
+            failed += 1
+            pending_finalize = []
+        else:
+            _write_batch_journal(journal_path, journal)
 
+        if not snapshot_error:
+            for index, (current_pdf, manifest_path, started) in enumerate(pending_finalize):
+                title = load_manifest(manifest_path).get("title", current_pdf.stem)
+                emit(f"[STEP 4/6] build_lancedb_index title={title}")
+                try:
+                    documents = [
+                        (chunk_file, manifest_path)
+                        for chunk_file in batch_chunk_files([manifest_path])
+                    ]
+                    indexed, index_message = run_index_build(root, runner, documents)
+                except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as error:
+                    indexed = False
+                    index_message = str(error)
+                emit(index_message)
+                if not indexed:
+                    index_failure = (current_pdf, manifest_path, index_message)
+                    break
+                journal["documents"][index]["indexed"] = True
+                _write_batch_journal(journal_path, journal)
+                indexed_pending.append((current_pdf, manifest_path, started))
+        if index_failure:
+            failure_pdf, failure_manifest, failure_message = index_failure
+            _rollback_batch(root, journal_path, journal, failure_message)
+            destination = quarantine_pdf(root, failure_pdf, failure_manifest, "indexing", failure_message)
+            emit(
+                f"FAILED title={load_manifest(failure_manifest).get('title', failure_pdf.stem)} "
+                f"step=indexing error={failure_message} path={destination.relative_to(root)}"
+            )
+            emit(f"ROLLED_BACK batch={journal['batch_id']} reason={failure_message}")
+            failed += 1
+            pending_finalize = []
+        elif not snapshot_error:
+            journal["status"] = "indexed"
+            journal["indexed_at"] = now_iso()
+            _write_batch_journal(journal_path, journal)
+            pending_finalize = indexed_pending
+
+    batch_failure = False
     for current_pdf, manifest_path, started in pending_finalize:
         title = load_manifest(manifest_path).get("title", current_pdf.stem)
         emit(f"[STEP 5/6] finalize title={title}")
         finalized, finalize_message = finalizer(root, current_pdf, manifest_path)
         emit(finalize_message)
         if not finalized:
+            if pending_finalize:
+                _rollback_batch(root, journal_path, journal, finalize_message)
             destination = quarantine_pdf(root, current_pdf, manifest_path, "finalize", finalize_message)
             emit(f"FAILED title={title} step=finalize error={finalize_message} path={destination.relative_to(root)}")
             failed += 1
-            continue
+            batch_failure = True
+            break
 
         finalized_manifest = load_manifest(manifest_path)
+        if pending_finalize:
+            entry = next(item for item in journal["documents"] if item["document_id"] == manifest_path.stem)
+            entry["finalized"] = True
+            _write_batch_journal(journal_path, journal)
         elapsed = timer() - started
         emit(f"[STEP 6/6] indexed title={title}")
         emit(
@@ -375,6 +487,11 @@ def run_pipeline(
             f"chunks={finalized_manifest.get('chunk_count', 0)} "
             f"elapsed={elapsed:.2f}s source={finalized_manifest.get('source_path', '')}"
         )
+
+    if pending_finalize and not batch_failure:
+        journal["status"] = "committed"
+        journal["committed_at"] = now_iso()
+        _write_batch_journal(journal_path, journal)
 
     total_elapsed = timer() - batch_start
     emit(

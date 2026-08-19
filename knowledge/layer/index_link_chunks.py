@@ -140,6 +140,33 @@ def update_source_path(root: Path, document_id: str, source_path: str) -> int:
         return count
 
 
+def snapshot_document(root: Path, document_id: str) -> list[dict]:
+    """Capture one document's rows so a failed intake batch can restore them."""
+    with index_lock(root):
+        db = lancedb.connect(str(root / "index" / "lancedb"))
+        if TABLE_NAME not in db.list_tables().tables:
+            return []
+        table = db.open_table(TABLE_NAME)
+        count = table.count_rows(f"document_id = '{document_id}'")
+        if not count:
+            return []
+        return table.search().where(f"document_id = '{document_id}'").limit(count).to_arrow().to_pylist()
+
+
+def restore_document(root: Path, document_id: str, rows: list[dict]) -> None:
+    """Restore one document's pre-batch rows, or remove its new rows."""
+    with index_lock(root):
+        db = lancedb.connect(str(root / "index" / "lancedb"))
+        if TABLE_NAME not in db.list_tables().tables:
+            if rows:
+                db.create_table(TABLE_NAME, data=rows, schema=LIBRARY_CHUNKS_SCHEMA)
+            return
+        table = db.open_table(TABLE_NAME)
+        table.delete(f"document_id = '{document_id}'")
+        if rows:
+            table.add(rows)
+
+
 def validate_index_compatibility(table) -> None:
     """Fail clearly when an index was built with a different embedding contract."""
     schema = table.schema

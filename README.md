@@ -83,11 +83,16 @@ atomic claim -> /hve-library/intake/processing
         |       or local Tesseract OCR for scanned PDFs
         |
         v
-page-aware chunks -> LanceDB
+page-aware chunks -> journaled LanceDB batch
         |
         v
 /hve-library/raw/pdfs
 ```
+
+Indexing and finalization are protected by a journal under
+`/hve-library/state/intake-batches/`. If a worker or indexer fails after part
+of a batch commits, the next run restores prior LanceDB rows, manifests, and
+archived PDF paths before retrying the processing queue.
 
 The intake worker uses an exclusive lock so a watcher-triggered run and a
 manual collector run cannot process the same file concurrently. PDF uploads

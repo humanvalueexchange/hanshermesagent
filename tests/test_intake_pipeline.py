@@ -188,6 +188,145 @@ class RunPipelineTests(unittest.TestCase):
             self.assertTrue((root / "raw" / "pdfs" / "good.pdf").exists())
             self.assertIn("FAILED title=bad step=extraction error=pdftotext failed", "\n".join(logs))
 
+    def test_run_pipeline_rolls_back_prior_indexed_documents_on_batch_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            inbox = root / "intake" / "inbox"
+            inbox.mkdir(parents=True)
+            (inbox / "alpha.pdf").write_bytes(b"alpha")
+            (inbox / "beta.pdf").write_bytes(b"beta")
+            logs: list[str] = []
+            calls = 0
+
+            def flaky_runner(cmd, capture_output, text, check):  # noqa: ANN001
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    return mock.Mock(returncode=1, stdout="", stderr="index failed")
+                return mock.Mock(returncode=0, stdout='{"records": 2}', stderr="")
+
+            finalizer = mock.Mock(
+                return_value=(True, "FINALIZED should not be called after rollback")
+            )
+            restored: list[str] = []
+
+            def fake_restore(root, document_id, rows):  # noqa: ANN001
+                restored.append(document_id)
+
+            with (
+                mock.patch.object(run_intake_pipeline, "snapshot_document", return_value=[]),
+                mock.patch.object(run_intake_pipeline, "restore_document", side_effect=fake_restore),
+            ):
+                exit_code = run_intake_pipeline.run_pipeline(
+                    root,
+                    runner=flaky_runner,
+                    extractor=self._fake_extract_success,
+                    chunker=self._fake_chunk_success,
+                    finalizer=finalizer,
+                    emit=logs.append,
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(calls, 2)
+            self.assertEqual(len(restored), 2)
+            self.assertFalse((root / "raw" / "pdfs" / "alpha.pdf").exists())
+            self.assertTrue((root / "intake" / "processing" / "alpha.pdf").exists())
+            self.assertTrue((root / "intake" / "failed" / "beta.pdf").exists())
+            finalizer.assert_not_called()
+            journal_files = list((root / "state" / "intake-batches").glob("*.json"))
+            self.assertEqual(len(journal_files), 1)
+            journal = json.loads(journal_files[0].read_text(encoding="utf-8"))
+            self.assertEqual(journal["status"], "rolled_back")
+            self.assertIn("ROLLED_BACK batch=", "\n".join(logs))
+
+    def test_run_pipeline_rolls_back_archived_files_on_finalize_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            inbox = root / "intake" / "inbox"
+            inbox.mkdir(parents=True)
+            (inbox / "alpha.pdf").write_bytes(b"alpha")
+            (inbox / "beta.pdf").write_bytes(b"beta")
+            logs: list[str] = []
+
+            def fake_runner(cmd, capture_output, text, check):  # noqa: ANN001
+                return mock.Mock(returncode=0, stdout='{"records": 2}', stderr="")
+
+            def flaky_finalize(root, pdf_path, manifest_path):  # noqa: ANN001
+                destination = root / "raw" / "pdfs" / pdf_path.name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                pdf_path.replace(destination)
+                manifest = load_manifest(manifest_path)
+                manifest["source_path"] = str(destination)
+                save_manifest(manifest_path, manifest)
+                if pdf_path.name == "beta.pdf":
+                    return False, "provenance update failed"
+                return True, f"FINALIZED path={destination.relative_to(root)}"
+
+            with (
+                mock.patch.object(run_intake_pipeline, "snapshot_document", return_value=[]),
+                mock.patch.object(run_intake_pipeline, "restore_document"),
+            ):
+                exit_code = run_intake_pipeline.run_pipeline(
+                    root,
+                    runner=fake_runner,
+                    extractor=self._fake_extract_success,
+                    chunker=self._fake_chunk_success,
+                    finalizer=flaky_finalize,
+                    emit=logs.append,
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertTrue((root / "intake" / "processing" / "alpha.pdf").exists())
+            self.assertTrue((root / "intake" / "failed" / "beta.pdf").exists())
+            self.assertFalse((root / "raw" / "pdfs" / "alpha.pdf").exists())
+            self.assertFalse((root / "raw" / "pdfs" / "beta.pdf").exists())
+            journal_files = list((root / "state" / "intake-batches").glob("*.json"))
+            journal = json.loads(journal_files[0].read_text(encoding="utf-8"))
+            self.assertEqual(journal["status"], "rolled_back")
+
+    def test_recover_incomplete_batch_rolls_back_before_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_path = root / "state" / "manifests" / "doc.json"
+            manifest_path.parent.mkdir(parents=True)
+            original_manifest = {"document_id": "doc", "source_path": str(root / "intake" / "processing" / "doc.pdf")}
+            save_manifest(manifest_path, original_manifest)
+            journal_path = root / "state" / "intake-batches" / "batch.json"
+            journal_path.parent.mkdir(parents=True)
+            journal_path.write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "batch_id": "batch",
+                        "status": "active",
+                        "documents": [
+                            {
+                                "document_id": "doc",
+                                "pdf_path": original_manifest["source_path"],
+                                "manifest_path": str(manifest_path),
+                                "manifest_before": original_manifest,
+                                "previous_rows": [],
+                                "indexed": True,
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            restored: list[str] = []
+            with mock.patch.object(
+                run_intake_pipeline,
+                "restore_document",
+                side_effect=lambda root, document_id, rows: restored.append(document_id),
+            ):
+                logs: list[str] = []
+                run_intake_pipeline.recover_incomplete_batches(root, logs.append)
+
+            self.assertEqual(restored, ["doc"])
+            journal = json.loads(journal_path.read_text(encoding="utf-8"))
+            self.assertEqual(journal["status"], "rolled_back")
+            self.assertIn("ROLLED_BACK batch=batch", logs[0])
+
     def test_run_pipeline_fails_batch_when_chunk_file_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
