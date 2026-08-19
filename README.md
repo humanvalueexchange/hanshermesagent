@@ -52,6 +52,18 @@ outside Git:
 ~/.config/systemd/user/
 ```
 
+`/home/hans/hermes-cfo` is the canonical deployment source. Do not edit live
+profile files or user units directly. The deployment gate requires a clean,
+reviewed worktree, synchronizes managed units, and runs:
+
+```bash
+scripts/hermes-runtime-drift.sh
+```
+
+The drift check compares the live profile, hooks, managed user units,
+environment contract, service state, and required Ollama models with this
+checkout.
+
 ## Knowledge intake
 
 Telegram is used as a strict knowledge collector for links and PDFs. The

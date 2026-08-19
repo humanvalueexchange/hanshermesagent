@@ -4,17 +4,23 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HERMES_PROFILE=~/.hermes/profiles/main
+ACTIVE_PROFILE="$(cat "$HOME/.hermes/active_profile" 2>/dev/null || printf 'main')"
+HERMES_PROFILE="$HOME/.hermes/profiles/$ACTIVE_PROFILE"
 HERMES_HOOKS=~/.hermes/agent-hooks
 ENV_FILE=~/.hermes-mcp.env
 SKILLS_DIR="$REPO_ROOT/skills/hve"
+DRIFT_CHECK="$REPO_ROOT/scripts/hermes-runtime-drift.sh"
 
 echo "╔══════════════════════════════════════════════════╗"
 echo "║       Hermes CFO — Deploy                        ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
-# ── 1. Pull latest from repo ──────────────────────────────────────────────────
+# ── 1. Require a reviewable source tree, then pull latest from repo ───────────
+if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
+  echo "ERROR: repository worktree is dirty. Commit or discard changes before deployment."
+  exit 1
+fi
 echo "→ Pulling latest from hermes-cfo repo..."
 cd "$REPO_ROOT"
 OLD_HEAD=$(git rev-parse HEAD)
@@ -43,16 +49,9 @@ sed "s/\${HVE_MCP_API_KEY}/$HVE_MCP_API_KEY/g" \
 
 RESTART_NEEDED=false
 
-# ── 4. Config diff ────────────────────────────────────────────────────────────
+# ── 4. Config contract ────────────────────────────────────────────────────────
 if [ -f "$HERMES_PROFILE/config.yaml" ]; then
-  if ! diff -q "$NEW_CONFIG" "$HERMES_PROFILE/config.yaml" &>/dev/null; then
-    echo "→ Config changed — updating..."
-    cp "$NEW_CONFIG" "$HERMES_PROFILE/config.yaml"
-    echo "✅ config.yaml updated"
-    RESTART_NEEDED=true
-  else
-    echo "✅ config.yaml — no changes"
-  fi
+  echo "✅ Preserving active profile config; runtime drift check will validate its managed contract"
 else
   cp "$NEW_CONFIG" "$HERMES_PROFILE/config.yaml"
   echo "✅ config.yaml installed (first time)"
@@ -82,16 +81,28 @@ else
   echo "✅ inject-market-data.sh — no changes"
 fi
 
-# ── 6b. Model preload service diff ───────────────────────────────────────────
-PRELOAD_DST="$HOME/.config/systemd/user/hermes-model-preload.service"
-if ! diff -q "$REPO_ROOT/dotfiles/hermes-model-preload.service" "$PRELOAD_DST" &>/dev/null 2>&1; then
-  echo "→ hermes-model-preload.service changed — updating..."
-  cp "$REPO_ROOT/dotfiles/hermes-model-preload.service" "$PRELOAD_DST"
-  systemctl --user daemon-reload
+# ── 6b. Managed user units ────────────────────────────────────────────────────
+mkdir -p "$HOME/.config/systemd/user"
+for unit in hermes-mcp.service hermes-model-preload.service hve-intake.service hve-intake.path; do
+  source_unit="$REPO_ROOT/dotfiles/$unit"
+  destination_unit="$HOME/.config/systemd/user/$unit"
+  if ! diff -q "$source_unit" "$destination_unit" &>/dev/null 2>&1; then
+    cp "$source_unit" "$destination_unit"
+    echo "✅ $unit updated"
+    RESTART_NEEDED=true
+  else
+    echo "✅ $unit — no changes"
+  fi
+done
+systemctl --user daemon-reload
+if systemctl --user is-active --quiet hermes-mcp.service 2>/dev/null; then
+  systemctl --user restart hermes-mcp.service
+fi
+if systemctl --user is-active --quiet hve-intake.path 2>/dev/null; then
+  systemctl --user restart hve-intake.path
+fi
+if systemctl --user is-active --quiet hermes-model-preload.service 2>/dev/null; then
   systemctl --user restart hermes-model-preload.service
-  echo "✅ hermes-model-preload.service updated"
-else
-  echo "✅ hermes-model-preload.service — no changes"
 fi
 
 # ── 6c. Native HVE skills validation ──────────────────────────────────────────
@@ -128,6 +139,10 @@ else
   echo ""
   echo "ℹ️  No changes requiring restart."
 fi
+
+echo ""
+echo "→ Checking repository/live runtime drift..."
+"$DRIFT_CHECK"
 
 echo ""
 echo "Deploy complete ✅  $(date -u '+%Y-%m-%d %H:%M UTC')"
