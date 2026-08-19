@@ -5,11 +5,13 @@ import datetime as dt
 import fcntl
 import hashlib
 import html
+import http.client
 import ipaddress
 import json
 import os
 import re
 import socket
+import ssl
 import subprocess
 import time
 import urllib.error
@@ -240,6 +242,29 @@ def canonicalize_url(url: str) -> str:
     return urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
 
 
+def _public_addresses(host: str, port: int) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+    try:
+        direct_ip = ipaddress.ip_address(host)
+        addresses = [direct_ip]
+    except ValueError:
+        try:
+            addresses = list(
+                {
+                    ipaddress.ip_address(item[4][0])
+                    for item in socket.getaddrinfo(
+                        host,
+                        port,
+                        type=socket.SOCK_STREAM,
+                    )
+                }
+            )
+        except (OSError, ValueError) as exc:
+            raise LinkCollectorError(f"Hostname could not be resolved: {host}") from exc
+    if not addresses or any(not address.is_global for address in addresses):
+        raise LinkCollectorError("Private, loopback, reserved, or link-local targets are not accepted")
+    return addresses
+
+
 def _validate_public_target(url: str) -> None:
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
@@ -251,24 +276,50 @@ def _validate_public_target(url: str) -> None:
     if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
         raise LinkCollectorError("Local network targets are not accepted")
 
-    try:
-        direct_ip = ipaddress.ip_address(host)
-        addresses = [direct_ip]
-    except ValueError:
-        try:
-            addresses = {
-                ipaddress.ip_address(item[4][0])
-                for item in socket.getaddrinfo(
-                    host,
-                    parsed.port or (443 if parsed.scheme == "https" else 80),
-                    type=socket.SOCK_STREAM,
-                )
-            }
-        except (OSError, ValueError) as exc:
-            raise LinkCollectorError(f"Hostname could not be resolved: {host}") from exc
+    _public_addresses(host, parsed.port or (443 if parsed.scheme == "https" else 80))
 
-    if not addresses or any(not address.is_global for address in addresses):
-        raise LinkCollectorError("Private, loopback, reserved, or link-local targets are not accepted")
+
+class _PinnedHTTPConnection(http.client.HTTPConnection):
+    def connect(self) -> None:
+        addresses = _public_addresses(self.host, self.port)
+        last_error: OSError | None = None
+        for address in addresses:
+            try:
+                self.sock = socket.create_connection((str(address), self.port), self.timeout)
+                return
+            except OSError as exc:
+                last_error = exc
+        raise OSError(f"Unable to connect to validated public target {self.host}") from last_error
+
+
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    def connect(self) -> None:
+        if self._tunnel_host:
+            raise OSError("HTTP proxy tunneling is not permitted")
+        addresses = _public_addresses(self.host, self.port)
+        last_error: OSError | None = None
+        for address in addresses:
+            raw_socket: socket.socket | None = None
+            try:
+                raw_socket = socket.create_connection((str(address), self.port), self.timeout)
+                context = self._context or ssl.create_default_context()
+                self.sock = context.wrap_socket(raw_socket, server_hostname=self.host)
+                return
+            except OSError as exc:
+                if raw_socket is not None:
+                    raw_socket.close()
+                last_error = exc
+        raise OSError(f"Unable to connect to validated public target {self.host}") from last_error
+
+
+class _PinnedHTTPHandler(urllib.request.HTTPHandler):
+    def http_open(self, req):
+        return self.do_open(_PinnedHTTPConnection, req)
+
+
+class _PinnedHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, req):
+        return self.do_open(_PinnedHTTPSConnection, req, context=self._context)
 
 
 class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -290,7 +341,12 @@ def fetch_public_html(url: str, timeout: int = 15) -> dict[str, Any]:
         },
         method="GET",
     )
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _SafeRedirectHandler())
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({}),
+        _PinnedHTTPHandler(),
+        _PinnedHTTPSHandler(),
+        _SafeRedirectHandler(),
+    )
     try:
         with opener.open(request, timeout=timeout) as response:
             final_url = canonicalize_url(response.geturl())
@@ -361,6 +417,35 @@ def fetch_browser_rendered_html(url: str, timeout: int = CDP_RENDER_TIMEOUT) -> 
                 while True:
                     remaining = max(0.1, deadline - time.monotonic())
                     message = json.loads(socket.recv(timeout=remaining))
+                    if message.get("method") == "Fetch.requestPaused":
+                        paused = message.get("params") or {}
+                        paused_id = str(paused.get("requestId") or "")
+                        request_url = str((paused.get("request") or {}).get("url") or "")
+                        try:
+                            target_url = canonicalize_url(request_url)
+                            _validate_public_target(target_url)
+                        except LinkCollectorError:
+                            socket.send(
+                                json.dumps(
+                                    {
+                                        "id": next_id + 1,
+                                        "method": "Fetch.failRequest",
+                                        "params": {"requestId": paused_id, "errorReason": "BlockedByClient"},
+                                    }
+                                )
+                            )
+                        else:
+                            socket.send(
+                                json.dumps(
+                                    {
+                                        "id": next_id + 1,
+                                        "method": "Fetch.continueRequest",
+                                        "params": {"requestId": paused_id},
+                                    }
+                                )
+                            )
+                        next_id += 1
+                        continue
                     if message.get("id") == request_id:
                         if "error" in message:
                             raise LinkCollectorError(f"CDP command failed: {message['error']}")
@@ -368,6 +453,7 @@ def fetch_browser_rendered_html(url: str, timeout: int = CDP_RENDER_TIMEOUT) -> 
 
             command("Page.enable")
             command("Runtime.enable")
+            command("Fetch.enable", {"patterns": [{"urlPattern": "*", "requestStage": "Request"}]})
             command("Page.navigate", {"url": canonical_request})
             time.sleep(min(2, max(0, timeout)))
             rendered = command(
@@ -842,6 +928,8 @@ def archive_link(
                 "credentials_sent": False,
                 "cookies_sent": False,
                 "private_networks_blocked": True,
+                "dns_rebinding_mitigated": True,
+                "browser_request_interception": True,
                 "max_html_bytes": MAX_HTML_BYTES,
             },
         }

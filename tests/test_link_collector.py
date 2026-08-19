@@ -40,6 +40,60 @@ class LinkCollectorTests(unittest.TestCase):
         self.assertFalse(result["archived"])
         self.assertFalse(result["indexed"])
 
+    def test_rejects_private_ipv6_resolution(self) -> None:
+        private_resolution = [
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("::1", 443, 0, 0))
+        ]
+        with mock.patch("socket.getaddrinfo", return_value=private_resolution):
+            with self.assertRaises(link_collector.LinkCollectorError):
+                link_collector._validate_public_target("https://internal.example")
+
+    def test_redirect_destination_is_validated_before_following(self) -> None:
+        public_resolution = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
+        ]
+        private_resolution = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("169.254.169.254", 443))
+        ]
+        request = link_collector.urllib.request.Request("https://example.com/start")
+        with mock.patch(
+            "socket.getaddrinfo",
+            side_effect=[public_resolution, private_resolution],
+        ):
+            handler = link_collector._SafeRedirectHandler()
+            first = handler.redirect_request(
+                request,
+                None,
+                302,
+                "Found",
+                {},
+                "https://redirect.example/",
+            )
+            self.assertIsNotNone(first)
+            with self.assertRaises(link_collector.LinkCollectorError):
+                handler.redirect_request(
+                    first,
+                    None,
+                    302,
+                    "Found",
+                    {},
+                    "https://private.example/",
+                )
+
+    def test_pinned_connection_connects_to_validated_address(self) -> None:
+        fake_socket = mock.Mock()
+        public_address = link_collector.ipaddress.ip_address("93.184.216.34")
+        with (
+            mock.patch("tools.link_collector._public_addresses", return_value=[public_address]) as resolve,
+            mock.patch("socket.create_connection", return_value=fake_socket) as connect,
+        ):
+            connection = link_collector._PinnedHTTPConnection("example.com", 443, timeout=5)
+            connection.connect()
+
+        resolve.assert_called_once_with("example.com", 443)
+        connect.assert_called_once_with(("93.184.216.34", 443), 5)
+        self.assertIs(connection.sock, fake_socket)
+
     def test_archives_with_provenance_without_false_index_claim(self) -> None:
         fetched = {
             "requested_url": "https://example.com/article",
