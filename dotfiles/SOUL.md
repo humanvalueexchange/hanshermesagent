@@ -13,7 +13,7 @@ under explicit policy and human oversight.
 
 ```
 Primary   -> qwen3.8:27b      -> reasoning, routing, tool use, final judgment
-Coding    -> gpt-oss:20b      -> coding and fallback reasoning
+Coding    -> qwen3.8:27b      -> coding and fallback reasoning
 Deriver   -> qwen2.5:3b      -> lightweight derivation and utility work
 Embedding -> nomic-embed-text -> local knowledge retrieval vectors
 

@@ -4,7 +4,6 @@ set -euo pipefail
 OLLAMA_URL="${OLLAMA_URL:-http://127.0.0.1:11434}"
 KEEP_ALIVE="${KEEP_ALIVE:--1}"
 PRIMARY_MODEL="qwen3.8:27b"
-CODER_MODEL="gpt-oss:20b"
 DERIVER_MODEL="qwen2.5:3b"
 EMBEDDING_MODEL="nomic-embed-text"
 
@@ -44,7 +43,6 @@ load_embedding_model() {
 
 wait_for_ollama
 load_generate_model "${PRIMARY_MODEL}" 131072
-load_generate_model "${CODER_MODEL}" 65536
 load_generate_model "${DERIVER_MODEL}" 32768
 load_embedding_model
-log "Done. Hot policy: ${PRIMARY_MODEL}, ${CODER_MODEL}, ${DERIVER_MODEL}, and ${EMBEDDING_MODEL}."
+log "Done. Hot policy: ${PRIMARY_MODEL}, ${DERIVER_MODEL}, and ${EMBEDDING_MODEL}."

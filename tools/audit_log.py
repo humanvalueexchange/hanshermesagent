@@ -40,7 +40,7 @@ def log_trade_cycle(symbol, direction, entry_price, stop, target, size_btc,
         "circuit_breaker_events": circuit_breaker_events or [],
         "agents": {
             "primary": "qwen3.8:27b",
-            "coding": "gpt-oss:20b",
+            "coding": "qwen3.8:27b",
             "deriver": "qwen2.5:3b"
         }
     }

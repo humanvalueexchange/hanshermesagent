@@ -375,7 +375,6 @@ providers:
     default_model: qwen3.8:27b
     models:
     - qwen3.8:27b
-    - gpt-oss:20b
     - qwen2.5:3b
     - nomic-embed-text
     name: Ollama

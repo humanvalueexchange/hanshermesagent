@@ -23,7 +23,7 @@ decision before any execution workflow.
 ```
 1. Research  →  qwen3.8:27b → market analysis + strategy
 2. Primary  →  qwen3.8:27b → synthesize + CONDUCTOR:APPROVE or CONDUCTOR:VETO
-3. Execution → gpt-oss:20b/qwen2.5:3b → position math + audit trail (only on APPROVE)
+3. Execution → qwen3.8:27b/qwen2.5:3b → position math + audit trail (only on APPROVE)
 ```
 
 ## Veto Rules (enforced by Conductor)

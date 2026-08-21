@@ -48,7 +48,7 @@ fi
 # ── Test 3: Ollama models loaded ─────────────────────────────────
 info "Checking current local Hermes model stack is loaded..."
 MODELS_RESP=$(curl -s --max-time 5 "http://$DGX:11434/api/ps" 2>/dev/null || echo "{}")
-for model in "qwen3.8:27b" "gpt-oss:20b" "qwen2.5:3b" "nomic-embed-text"; do
+for model in "qwen3.8:27b" "qwen2.5:3b" "nomic-embed-text"; do
   if echo "$MODELS_RESP" | grep -q "$model"; then
     pass "Model loaded: $model"
   else

@@ -32,9 +32,9 @@ resident:
       num_predict: 200
       seed: 42
   coding_fallback:
-    model: gpt-oss:20b
-    context: 65536
-    purpose: coding and fallback reasoning
+    model: qwen3.8:27b
+    context: 131072
+    purpose: coding and fallback reasoning on the primary model
   deriver:
     model: qwen2.5:3b
     context: 32768

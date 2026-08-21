@@ -119,10 +119,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 2: Coding / Fallback (gpt-oss:20b) — MUST call tools
+# SECTION 2: Coding / Fallback (qwen3.8:27b) — MUST call tools
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "── Section 2: Coding / Fallback (gpt-oss:20b) ─────────────────"
-CLARIFIER="gpt-oss:20b"
+echo "── Section 2: Coding / Fallback (qwen3.8:27b) ─────────────────"
+CLARIFIER="qwen3.8:27b"
 
 if ! model_available "$CLARIFIER"; then
   warn "Model not loaded: $CLARIFIER"
@@ -216,6 +216,6 @@ if [ $FAIL -gt 0 ]; then
   exit 1
 else
   echo "✅ All $PASS tests passed. Issue #2 acceptance criteria met."
-  echo "   Current local stack: qwen3.8:27b | gpt-oss:20b | qwen2.5:3b"
+  echo "   Current local stack: qwen3.8:27b | qwen2.5:3b"
   exit 0
 fi
