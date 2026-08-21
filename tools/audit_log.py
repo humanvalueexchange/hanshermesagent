@@ -39,7 +39,7 @@ def log_trade_cycle(symbol, direction, entry_price, stop, target, size_btc,
         "execution_math": execution_math,
         "circuit_breaker_events": circuit_breaker_events or [],
         "agents": {
-            "primary": "qwen3.5:27b-128k",
+            "primary": "qwen3.8:27b",
             "coding": "gpt-oss:20b",
             "deriver": "qwen2.5:3b"
         }
@@ -52,7 +52,7 @@ def log_veto(symbol, reason, consecutive_veto_count):
         "symbol": symbol,
         "veto_reason": reason,
         "consecutive_veto_count": consecutive_veto_count,
-        "primary_model": "qwen3.5:27b-128k"
+        "primary_model": "qwen3.8:27b"
     })
 
 def log_circuit_breaker(trigger, value=None, action=None):

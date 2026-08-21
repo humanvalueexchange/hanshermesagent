@@ -8,7 +8,7 @@
 | Component | Version | Updated | Notes |
 |---|---|---|---|
 | **hermes-agent** | `0.15.2` | 2026-05-30 | v2026.5.29.2 tag — confirmed on 0.15.2 |
-| **qwen3.5:27b-128k** | Ollama local | 2026-08-19 | Primary reasoning/orchestration — 131K context |
+| **qwen3.8:27b** | Ollama local | 2026-08-21 | Primary reasoning/orchestration and tool use — 131K context |
 | **gpt-oss:20b** | Ollama local | 2026-08-19 | Coding and fallback reasoning — 65K context |
 | **qwen2.5:3b** | Ollama local | 2026-08-19 | Lightweight derivation — 32K context |
 | **nomic-embed-text** | Ollama local | 2026-08-19 | Knowledge embeddings — 768 dimensions |

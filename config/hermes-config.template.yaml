@@ -194,8 +194,8 @@ curator:
   stale_after_days: 30
 dashboard:
   theme: default
-# Primary local model: qwen3.5:27b-128k.
-default-model: qwen3.5:27b-128k
+# Primary local model: qwen3.8:27b.
+default-model: qwen3.8:27b
 delegation:
   api_key: ''
   base_url: ''
@@ -299,7 +299,7 @@ memory:
   user_profile_enabled: true
 model:
   context_length: 131072
-  default: qwen3.5:27b-128k
+  default: qwen3.8:27b
   provider: ollama
 model_catalog:
   enabled: true
@@ -372,9 +372,9 @@ prompt_caching:
 providers:
   ollama:
     api: http://localhost:11434/v1
-    default_model: qwen3.5:27b-128k
+    default_model: qwen3.8:27b
     models:
-    - qwen3.5:27b-128k
+    - qwen3.8:27b
     - gpt-oss:20b
     - qwen2.5:3b
     - nomic-embed-text

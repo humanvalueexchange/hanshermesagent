@@ -90,10 +90,10 @@ else:
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 1: Primary (qwen3.5:27b-128k) — MUST call tools
+# SECTION 1: Primary (qwen3.8:27b) — MUST call tools
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "── Section 1: Primary (qwen3.5:27b-128k) ───────────────────────"
-CONDUCTOR="qwen3.5:27b-128k"
+echo "── Section 1: Primary (qwen3.8:27b) ─────────────────────────────"
+CONDUCTOR="qwen3.8:27b"
 
 if ! model_available "$CONDUCTOR"; then
   warn "Model not loaded: $CONDUCTOR"
@@ -216,6 +216,6 @@ if [ $FAIL -gt 0 ]; then
   exit 1
 else
   echo "✅ All $PASS tests passed. Issue #2 acceptance criteria met."
-  echo "   Current local stack: qwen3.5:27b-128k | gpt-oss:20b | qwen2.5:3b"
+  echo "   Current local stack: qwen3.8:27b | gpt-oss:20b | qwen2.5:3b"
   exit 0
 fi

@@ -49,7 +49,7 @@ def main() -> int:
 Generated: {iso_now()}
 
 ## Current local model stack
-- Primary: qwen3.5:27b-128k (configured)
+- Primary: qwen3.8:27b (configured)
 - Coding/fallback: gpt-oss:20b (configured)
 - Deriver: qwen2.5:3b (configured)
 - Embeddings: nomic-embed-text via Ollama (configured)

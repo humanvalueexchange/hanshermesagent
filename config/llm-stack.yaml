@@ -6,9 +6,31 @@ profile: hanshermesagent
 # Resident models are kept warm by hermes-preload-models.sh.
 resident:
   primary:
-    model: qwen3.5:27b-128k
+    model: qwen3.8:27b
     context: 131072
-    purpose: reasoning, routing, and final judgment
+    purpose: reasoning, routing, tool use, and final judgment
+    think: true
+    keep_alive: -1
+    options:
+      temperature: 1.0
+      top_p: 0.95
+      top_k: 20
+      min_p: 0
+      presence_penalty: 0
+      num_predict: 4096
+      seed: 42
+    instruct_options:
+      think: false
+      temperature: 0.7
+      top_p: 0.8
+      top_k: 20
+      min_p: 0
+      presence_penalty: 1.5
+    benchmark_options:
+      think: false
+      temperature: 0
+      num_predict: 200
+      seed: 42
   coding_fallback:
     model: gpt-oss:20b
     context: 65536

@@ -9,7 +9,7 @@ date: 2026-05-10
 # hermes-research — Research & Synthesis Sub-Agent
 
 ## Overview
-Use `qwen3.5:27b-128k` locally on Ollama for research, synthesis, and strategy
+Use `qwen3.8:27b` locally on Ollama for research, synthesis, and strategy
 evaluation. Confirm live market facts with tools rather than model memory.
 
 ## When to Invoke
@@ -28,7 +28,7 @@ Replace `YOUR RESEARCH QUESTION HERE` with the full task. Include all relevant c
 curl -s http://localhost:11434/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "qwen3.5:27b-128k",
+    "model": "qwen3.8:27b",
     "stream": false,
     "options": {"temperature": 0.15, "num_ctx": 131072},
     "messages": [
