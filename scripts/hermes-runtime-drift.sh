@@ -47,6 +47,12 @@ else
   source "$ENV_FILE"
   set +a
   [[ -n "${HVE_MCP_API_KEY:-}" ]] && pass "HVE_MCP_API_KEY is configured" || fail "HVE_MCP_API_KEY is empty"
+  [[ "${DERIVER_MODEL_CONFIG__MODEL:-}" == "qwen3.8-distill-2b:q4_k_m" ]] \
+    && pass "Honcho deriver model uses the canonical 2B model" \
+    || fail "Honcho deriver model is not the canonical 2B model"
+  [[ "${SUMMARY_MODEL_CONFIG__MODEL:-}" == "qwen3.8-distill-2b:q4_k_m" ]] \
+    && pass "Honcho summary model uses the canonical 2B model" \
+    || fail "Honcho summary model is not the canonical 2B model"
 fi
 
 if [[ -f "$ENV_FILE" ]]; then
