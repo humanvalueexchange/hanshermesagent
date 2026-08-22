@@ -59,7 +59,8 @@ configured correctly.
 
 Approval settings add human confirmation before sensitive actions:
 
-- `mode: auto` allows routine approved work without prompting every time.
+- `mode: smart` allows routine approved work without prompting every time while
+  escalating sensitive actions for confirmation.
 - `destructive_slash_confirm: true` protects commands that discard session
   state, such as `/clear`, `/new`, `/reset`, and `/undo`.
 - `cron_mode: deny` prevents cron actions unless the policy explicitly allows

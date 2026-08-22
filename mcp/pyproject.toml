@@ -5,5 +5,6 @@ description = "HVE Hermes MCP Server — exposes Hermes CFO capabilities to Copi
 requires-python = ">=3.12"
 dependencies = [
     "mcp[cli]>=1.0",
+    "fastmcp>=3.4,<4",
     "websockets==15.0.1",
 ]

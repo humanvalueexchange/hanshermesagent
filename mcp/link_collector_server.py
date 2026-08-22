@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent

@@ -22,8 +22,7 @@ from datetime import datetime
 from pathlib import Path
 
 from market_intelligence import get_market_intelligence_data
-from mcp.server.fastmcp import FastMCP
-from mcp.server.transport_security import TransportSecuritySettings
+from fastmcp import FastMCP
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -91,7 +90,6 @@ mcp = FastMCP(
         "HVE clients and the executive team. Link and PDF collection tools are "
         "restricted to the local HVE knowledge library."
     ),
-    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
 )
 
 for tool in (
@@ -602,7 +600,7 @@ def build_app():
     from starlette.responses import JSONResponse as JR  # noqa: PLC0415
     from starlette.routing import Mount, Route  # noqa: PLC0415
 
-    mcp_app = mcp.streamable_http_app()
+    mcp_app = mcp.http_app(transport="streamable-http")
 
     @asynccontextmanager
     async def lifespan(app):  # noqa: ANN001

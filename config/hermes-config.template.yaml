@@ -54,7 +54,7 @@ approvals:
   cron_mode: deny
   destructive_slash_confirm: true
   mcp_reload_confirm: true
-  mode: auto
+  mode: smart
   timeout: 60
 auxiliary:
   approval:
