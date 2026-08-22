@@ -90,10 +90,10 @@ else:
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 1: Primary (qwen3.8:27b) — MUST call tools
+# SECTION 1: Primary (qwen3.8-hermes:27b-128k) — MUST call tools
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "── Section 1: Primary (qwen3.8:27b) ─────────────────────────────"
-CONDUCTOR="qwen3.8:27b"
+echo "── Section 1: Primary (qwen3.8-hermes:27b-128k) ─────────────────"
+CONDUCTOR="qwen3.8-hermes:27b-128k"
 
 if ! model_available "$CONDUCTOR"; then
   warn "Model not loaded: $CONDUCTOR"
@@ -119,10 +119,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 2: Coding / Fallback (qwen3.8:27b) — MUST call tools
+# SECTION 2: Coding / Fallback (qwen3.8-hermes:27b-128k) — MUST call tools
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "── Section 2: Coding / Fallback (qwen3.8:27b) ─────────────────"
-CLARIFIER="qwen3.8:27b"
+echo "── Section 2: Coding / Fallback (qwen3.8-hermes:27b-128k) ─────"
+CLARIFIER="qwen3.8-hermes:27b-128k"
 
 if ! model_available "$CLARIFIER"; then
   warn "Model not loaded: $CLARIFIER"
@@ -216,6 +216,6 @@ if [ $FAIL -gt 0 ]; then
   exit 1
 else
   echo "✅ All $PASS tests passed. Issue #2 acceptance criteria met."
-  echo "   Current local stack: qwen3.8:27b | qwen3.8-distill-2b:q4_k_m"
+  echo "   Current local stack: qwen3.8-hermes:27b-128k | qwen3.8-distill-2b:q4_k_m"
   exit 0
 fi

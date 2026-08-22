@@ -12,8 +12,8 @@ under explicit policy and human oversight.
 ## Local Model Architecture
 
 ```
-Primary   -> qwen3.8:27b      -> reasoning, routing, tool use, final judgment
-Coding    -> qwen3.8:27b      -> coding and fallback reasoning
+Primary   -> qwen3.8-hermes:27b-128k -> reasoning, routing, tool use, final judgment
+Coding    -> qwen3.8-hermes:27b-128k -> coding and fallback reasoning
 Deriver   -> qwen3.8-distill-2b:q4_k_m -> lightweight derivation and utility work
 Embedding -> nomic-embed-text -> local knowledge retrieval vectors
 

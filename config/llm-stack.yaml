@@ -6,7 +6,7 @@ profile: hanshermesagent
 # Resident models are kept warm by hermes-preload-models.sh.
 resident:
   primary:
-    model: qwen3.8:27b
+    model: qwen3.8-hermes:27b-128k
     context: 131072
     ollama_num_ctx: 131072
     purpose: reasoning, routing, tool use, and final judgment
@@ -33,7 +33,7 @@ resident:
       num_predict: 200
       seed: 42
   coding_fallback:
-    model: qwen3.8:27b
+    model: qwen3.8-hermes:27b-128k
     context: 131072
     ollama_num_ctx: 131072
     purpose: coding and fallback reasoning on the primary model

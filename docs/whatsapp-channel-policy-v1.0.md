@@ -9,7 +9,7 @@ knowledge work, memory, research, coding, and approved system automation.
 
 ## Model stack
 
-- `qwen3.8:27b`: Hermes primary
+- `qwen3.8-hermes:27b-128k`: Hermes primary
 - `qwen3.8-distill-2b:q4_k_m`: Honcho deriver and summaries
 - `nomic-embed-text:latest`: embeddings
 

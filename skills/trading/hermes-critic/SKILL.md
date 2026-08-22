@@ -5,7 +5,7 @@ category: trading
 version: 2.0
 date: 2026-05-30
 deprecated_model: gemma2:27b
-active_model: qwen3.8:27b (Primary)
+active_model: qwen3.8-hermes:27b-128k (Primary)
 ---
 
 # hermes-critic — Critic, Risk & Veto (Conductor-Inline)
@@ -13,7 +13,7 @@ active_model: qwen3.8:27b (Primary)
 ## Architecture Change (2026-05-30)
 
 The veto function is performed inline by the primary model
-(`qwen3.8:27b`). It synthesizes research output and makes the Go/No-Go
+(`qwen3.8-hermes:27b-128k`). It synthesizes research output and makes the Go/No-Go
 decision before any execution workflow.
 
 > `gemma2:27b` remains installed on the DGX and is available for Open WebUI debug sessions (short, controlled, < 8K total) only.
@@ -21,9 +21,9 @@ decision before any execution workflow.
 ## Current Decision Flow
 
 ```
-1. Research  →  qwen3.8:27b → market analysis + strategy
-2. Primary  →  qwen3.8:27b → synthesize + CONDUCTOR:APPROVE or CONDUCTOR:VETO
-3. Execution → qwen3.8:27b/qwen3.8-distill-2b:q4_k_m → position math + audit trail (only on APPROVE)
+1. Research  → qwen3.8-hermes:27b-128k → market analysis + strategy
+2. Primary  → qwen3.8-hermes:27b-128k → synthesize + CONDUCTOR:APPROVE or CONDUCTOR:VETO
+3. Execution → qwen3.8-hermes:27b-128k/qwen3.8-distill-2b:q4_k_m → position math + audit trail (only on APPROVE)
 ```
 
 ## Veto Rules (enforced by Conductor)

@@ -194,8 +194,8 @@ curator:
   stale_after_days: 30
 dashboard:
   theme: default
-# Primary local model: qwen3.8:27b.
-default-model: qwen3.8:27b
+# Primary local model: qwen3.8-hermes:27b-128k.
+default-model: qwen3.8-hermes:27b-128k
 delegation:
   api_key: ''
   base_url: ''
@@ -299,7 +299,7 @@ memory:
   user_profile_enabled: true
 model:
   context_length: 131072
-  default: qwen3.8:27b
+  default: qwen3.8-hermes:27b-128k
   ollama_num_ctx: 131072
   provider: ollama
 model_catalog:
@@ -389,9 +389,9 @@ prompt_caching:
 providers:
   ollama:
     api: http://localhost:11434/v1
-    default_model: qwen3.8:27b
+    default_model: qwen3.8-hermes:27b-128k
     models:
-    - qwen3.8:27b
+    - qwen3.8-hermes:27b-128k
     - qwen3.8-distill-2b:q4_k_m
     - nomic-embed-text
     name: Ollama

@@ -3,7 +3,7 @@ set -euo pipefail
 
 OLLAMA_URL="${OLLAMA_URL:-http://127.0.0.1:11434}"
 KEEP_ALIVE="${KEEP_ALIVE:--1}"
-PRIMARY_MODEL="qwen3.8:27b"
+PRIMARY_MODEL="qwen3.8-hermes:27b-128k"
 DERIVER_MODEL="qwen3.8-distill-2b:q4_k_m"
 EMBEDDING_MODEL="nomic-embed-text"
 

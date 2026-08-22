@@ -10,7 +10,7 @@ date: 2026-05-10
 
 ## Overview
 Use the local `qwen3.8-distill-2b:q4_k_m` deriver for lightweight deterministic calculations and
-`qwen3.8:27b` for code-generation or fallback reasoning after a trade has been
+`qwen3.8-hermes:27b-128k` for code-generation or fallback reasoning after a trade has been
 approved. Verify outputs with tools before acting.
 
 ## ⚠️ Prerequisite
@@ -33,7 +33,7 @@ Provide the complete approved trade: include the CRITIC:APPROVE line, symbol, di
 curl -s http://localhost:11434/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "qwen3.8:27b",
+    "model": "qwen3.8-hermes:27b-128k",
     "stream": false,
     "options": {"temperature": 0.05, "num_ctx": 131072},
     "messages": [
