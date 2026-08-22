@@ -25,6 +25,8 @@ settings and explicit per-model context limits. The preload unit runs after
 Ollama and the gateway waits for preload completion, so normal boot does not
 start Hermes with the native 262K Qwen context and evict the auxiliary models.
 Additional models may exist on disk, but are not part of the approved hot set.
+The imported `qwen3.8-distill-4b:q4_k_m` model is registered for bounded,
+on-demand evaluation and is intentionally not preloaded.
 
 ### Embedding backend
 

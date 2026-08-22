@@ -52,6 +52,9 @@ resident:
 
 # Installed but not resident; load only for an explicitly bounded task.
 on_demand:
+  - model: qwen3.8-distill-4b:q4_k_m
+    context: 32768
+    purpose: optional Qwen3.8 distill evaluation
   - model: qwen3-coder:30b
     purpose: optional coding evaluation
   - model: qwen2.5-coder:14b
