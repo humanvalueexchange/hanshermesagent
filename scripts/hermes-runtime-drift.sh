@@ -7,6 +7,7 @@ ACTIVE_PROFILE="$(cat "$HOME/.hermes/active_profile" 2>/dev/null || printf 'main
 PROFILE="${HERMES_PROFILE:-$HOME/.hermes/profiles/$ACTIVE_PROFILE}"
 CODER_PROFILE="${HERMES_CODER_PROFILE:-$HOME/.hermes/profiles/hermes-coder}"
 ENV_FILE="${HERMES_ENV_FILE:-$HOME/.hermes-mcp.env}"
+HONCHO_ENV_FILE="${HONCHO_ENV_FILE:-$HOME/honcho/.env}"
 UNIT_DIR="${HERMES_UNIT_DIR:-$HOME/.config/systemd/user}"
 if [[ "$PROFILE" != /* ]]; then
   PROFILE="$HOME/.hermes/profiles/$PROFILE"
@@ -47,6 +48,8 @@ else
   source "$ENV_FILE"
   set +a
   [[ -n "${HVE_MCP_API_KEY:-}" ]] && pass "HVE_MCP_API_KEY is configured" || fail "HVE_MCP_API_KEY is empty"
+  [[ -f "$HONCHO_ENV_FILE" ]] && \
+    source "$HONCHO_ENV_FILE"
   [[ "${DERIVER_MODEL_CONFIG__MODEL:-}" == "qwen3.8-distill-2b:q4_k_m" ]] \
     && pass "Honcho deriver model uses the canonical 2B model" \
     || fail "Honcho deriver model is not the canonical 2B model"
