@@ -8,6 +8,7 @@ ACTIVE_PROFILE="$(cat "$HOME/.hermes/active_profile" 2>/dev/null || printf 'main
 HERMES_PROFILE="$HOME/.hermes/profiles/$ACTIVE_PROFILE"
 HERMES_HOOKS=~/.hermes/agent-hooks
 ENV_FILE=~/.hermes-mcp.env
+GATEWAY_UNIT="${HERMES_GATEWAY_UNIT:-hermes-gateway-hanshermesagent.service}"
 SKILLS_DIR="$REPO_ROOT/skills/hve"
 DRIFT_CHECK="$REPO_ROOT/scripts/hermes-runtime-drift.sh"
 
@@ -125,15 +126,15 @@ fi
 # ── 7. Restart if needed ──────────────────────────────────────────────────────
 if $RESTART_NEEDED; then
   echo ""
-  if systemctl --user is-active --quiet hermes-gateway.service 2>/dev/null; then
+  if systemctl --user is-active --quiet "$GATEWAY_UNIT" 2>/dev/null; then
     echo "→ Restarting Hermes gateway (config changed)..."
-    systemctl --user restart hermes-gateway.service
+    systemctl --user restart "$GATEWAY_UNIT"
     sleep 2
-    systemctl --user status hermes-gateway.service --no-pager | head -6
+    systemctl --user status "$GATEWAY_UNIT" --no-pager | head -6
     echo "✅ Hermes gateway restarted"
   else
     echo "ℹ️  Gateway not running — changes applied, start with:"
-    echo "   systemctl --user start hermes-gateway.service"
+    echo "   systemctl --user start $GATEWAY_UNIT"
   fi
 else
   echo ""
