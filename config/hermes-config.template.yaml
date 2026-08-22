@@ -4,10 +4,10 @@ agent:
   disabled_toolsets: []
   gateway_auto_continue_freshness: 3600
   gateway_notify_interval: 180
-  gateway_timeout: 1800
-  gateway_timeout_warning: 900
+  gateway_timeout: 600
+  gateway_timeout_warning: 300
   image_input_mode: auto
-  max_turns: 150
+  max_turns: 30
   personalities:
     catgirl: You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and
       cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ.
@@ -52,7 +52,7 @@ agent:
   verbose: false
 approvals:
   cron_mode: deny
-  destructive_slash_confirm: false
+  destructive_slash_confirm: true
   mcp_reload_confirm: true
   mode: auto
   timeout: 60
@@ -363,7 +363,23 @@ platform_toolsets:
   - vision
   - web
   whatsapp:
-  - hermes-whatsapp
+  - bfl
+  - browser
+  - clarify
+  - code_execution
+  - computer_use
+  - cronjob
+  - delegation
+  - file
+  - image_gen
+  - memory
+  - session_search
+  - skills
+  - terminal
+  - todo
+  - tts
+  - vision
+  - web
 prefill_messages_file: ''
 privacy:
   redact_pii: false
@@ -458,7 +474,7 @@ tool_loop_guardrails:
     exact_failure: 5
     idempotent_no_progress: 5
     same_tool_failure: 8
-  hard_stop_enabled: false
+  hard_stop_enabled: true
   warn_after:
     exact_failure: 2
     idempotent_no_progress: 2
