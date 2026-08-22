@@ -63,8 +63,10 @@ scripts/hermes-runtime-drift.sh
 ```
 
 The drift check compares the live profile, hooks, managed user units,
-environment contract, service state, and required Ollama models with this
-checkout.
+environment contract, service state, both Hermes profiles, scheduled jobs,
+warmup scripts, required Ollama models, and their live contexts with this
+checkout. `config/llm-stack.yaml` is the canonical model contract; any model
+or context change must update it first and then pass:
 
 ## Knowledge intake
 
@@ -73,6 +75,11 @@ collector preserves source material and provenance rather than treating a
 conversation as the durable knowledge store.
 
 ```
+
+The check must pass before restarting or rebooting the stack. It is
+deliberately stricter than checking `ollama list`: residency and the actual
+runtime context reported by `ollama ps` are what protect the three-model hot
+policy from accidental eviction.
 
 Honcho is the durable Hermes knowledge and memory layer. Telegram is reserved
 for link/PDF ingestion, while WhatsApp is the primary human-facing channel for

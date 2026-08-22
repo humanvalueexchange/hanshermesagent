@@ -5,6 +5,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ACTIVE_PROFILE="$(cat "$HOME/.hermes/active_profile" 2>/dev/null || printf 'main')"
 PROFILE="${HERMES_PROFILE:-$HOME/.hermes/profiles/$ACTIVE_PROFILE}"
+CODER_PROFILE="${HERMES_CODER_PROFILE:-$HOME/.hermes/profiles/hermes-coder}"
 ENV_FILE="${HERMES_ENV_FILE:-$HOME/.hermes-mcp.env}"
 UNIT_DIR="${HERMES_UNIT_DIR:-$HOME/.config/systemd/user}"
 if [[ "$PROFILE" != /* ]]; then
@@ -57,7 +58,7 @@ if [[ -f "$ENV_FILE" ]]; then
     fail "model stack manifest is missing: $REPO_ROOT/config/llm-stack.yaml"
   elif [[ ! -f "$PROFILE/config.yaml" ]]; then
     fail "live Hermes config is missing: $PROFILE/config.yaml"
-  elif python3 - "$rendered_config" "$PROFILE/config.yaml" "$manifest" <<'PY'
+  elif python3 - "$rendered_config" "$PROFILE/config.yaml" "$CODER_PROFILE/config.yaml" "$manifest" <<'PY'
 import sys
 from pathlib import Path
 
@@ -65,17 +66,26 @@ import yaml
 
 template = yaml.safe_load(Path(sys.argv[1]).read_text())
 live = yaml.safe_load(Path(sys.argv[2]).read_text())
-manifest = yaml.safe_load(Path(sys.argv[3]).read_text())
+coder = yaml.safe_load(Path(sys.argv[3]).read_text())
+manifest = yaml.safe_load(Path(sys.argv[4]).read_text())
 
 resident = manifest["resident"]
 expected_models = {entry["model"] for entry in resident.values()}
 primary = resident["primary"]["model"]
+expected_contexts = {entry["model"]: entry["context"] for entry in resident.values()}
 provider_config = next(iter((live.get("providers") or {}).values()), {})
+coder_provider = next(iter((coder.get("providers") or {}).values()), {})
 
 checks = [
     (live.get("model", {}).get("default") == primary, "primary model"),
+    (live.get("model", {}).get("context_length") == expected_contexts[primary], "primary context length"),
+    (live.get("model", {}).get("ollama_num_ctx") == expected_contexts[primary], "primary Ollama context override"),
     (provider_config.get("default_model") == primary, "provider default model"),
     (set(provider_config.get("models") or []) == expected_models, "approved Ollama model catalog"),
+    (coder.get("model", {}).get("default") == primary, "Hermes-coder primary model"),
+    (coder.get("model", {}).get("context_length") == expected_contexts[primary], "Hermes-coder context length"),
+    (coder_provider.get("default_model") == primary, "Hermes-coder provider default model"),
+    (set(coder_provider.get("models") or []) == expected_models, "Hermes-coder model catalog"),
     (live.get("memory", {}).get("provider") == "honcho", "Honcho memory provider"),
     (live.get("security", {}).get("allow_private_urls") is False, "private URL protection"),
     (live.get("security", {}).get("tirith_fail_open") is False, "Tirith fail-closed mode"),
@@ -90,9 +100,60 @@ PY
   else
     fail "active profile config violates the repository runtime contract: $PROFILE/config.yaml"
   fi
+  if [[ ! -f "$CODER_PROFILE/config.yaml" ]]; then
+    fail "Hermes-coder config is missing: $CODER_PROFILE/config.yaml"
+  else
+    pass "Hermes-coder config satisfies the repository runtime contract: $CODER_PROFILE/config.yaml"
+  fi
 else
   fail "cannot render live Hermes config without the environment file"
 fi
+
+cron_file="$HOME/.hermes/profiles/hanshermesagent/cron/jobs.json"
+if [[ ! -f "$cron_file" ]]; then
+  fail "Hermes cron configuration is missing: $cron_file"
+elif python3 - "$cron_file" "$manifest" <<'PY'
+import json
+import sys
+from pathlib import Path
+import yaml
+
+jobs = json.loads(Path(sys.argv[1]).read_text())["jobs"]
+manifest = yaml.safe_load(Path(sys.argv[2]).read_text())
+primary = manifest["resident"]["primary"]["model"]
+obsolete = ("qwen3.5:27b-128k", "qwen3.8:27b", "qwen2.5:3b")
+bad = []
+for job in jobs:
+    text = json.dumps(job, sort_keys=True)
+    if any(model in text for model in obsolete):
+        bad.append(f"{job.get('id')}: obsolete model reference")
+    for key in ("model", "model_snapshot"):
+        value = job.get(key)
+        if value and ("qwen" in value or value.startswith("nomic-")) and value != primary:
+            bad.append(f"{job.get('id')}: {key}={value}")
+if bad:
+    print("; ".join(bad))
+    raise SystemExit(1)
+PY
+then
+  pass "scheduled Hermes jobs use the canonical model policy"
+else
+  fail "scheduled Hermes jobs violate the canonical model policy"
+fi
+
+for warmup in \
+  "$REPO_ROOT/scripts/hermes-preload-models.sh" \
+  "$HOME/ollma-warmup.sh" \
+  "$HOME/humanvalueexchange/hermes/scripts/hermes-preload-models.sh"; do
+  if [[ ! -f "$warmup" ]]; then
+    warn "warmup script not found: $warmup"
+  elif grep -q 'qwen3.8-hermes:27b-128k' "$warmup" && \
+       grep -q 'qwen3.8-distill-2b:q4_k_m' "$warmup"; then
+    pass "warmup script uses canonical model policy: $warmup"
+  else
+    fail "warmup script violates canonical model policy: $warmup"
+  fi
+done
 
 compare_file() {
   local source="$1"
