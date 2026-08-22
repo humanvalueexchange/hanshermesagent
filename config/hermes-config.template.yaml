@@ -68,7 +68,7 @@ auxiliary:
     api_key: ''
     base_url: ''
     extra_body: {}
-    model: qwen2.5:3b
+    model: qwen3.8-distill-2b:q4_k_m
     provider: auto
     timeout: 120
   curator:
@@ -391,7 +391,7 @@ providers:
     default_model: qwen3.8:27b
     models:
     - qwen3.8:27b
-    - qwen2.5:3b
+    - qwen3.8-distill-2b:q4_k_m
     - nomic-embed-text
     name: Ollama
 quick_commands: {}

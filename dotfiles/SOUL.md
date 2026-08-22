@@ -14,7 +14,7 @@ under explicit policy and human oversight.
 ```
 Primary   -> qwen3.8:27b      -> reasoning, routing, tool use, final judgment
 Coding    -> qwen3.8:27b      -> coding and fallback reasoning
-Deriver   -> qwen2.5:3b      -> lightweight derivation and utility work
+Deriver   -> qwen3.8-distill-2b:q4_k_m -> lightweight derivation and utility work
 Embedding -> nomic-embed-text -> local knowledge retrieval vectors
 
 ```

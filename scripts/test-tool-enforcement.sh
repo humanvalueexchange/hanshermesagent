@@ -142,10 +142,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 3: Deriver (qwen2.5:3b) — MUST call tools
+# SECTION 3: Deriver (qwen3.8-distill-2b:q4_k_m) — MUST call tools
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "── Section 3: Deriver (qwen2.5:3b) ────────────────────────────"
-EXECUTION="qwen2.5:3b"
+echo "── Section 3: Deriver (qwen3.8-distill-2b:q4_k_m) ─────────────"
+EXECUTION="qwen3.8-distill-2b:q4_k_m"
 
 if ! model_available "$EXECUTION"; then
   warn "Model not loaded: $EXECUTION"
@@ -216,6 +216,6 @@ if [ $FAIL -gt 0 ]; then
   exit 1
 else
   echo "✅ All $PASS tests passed. Issue #2 acceptance criteria met."
-  echo "   Current local stack: qwen3.8:27b | qwen2.5:3b"
+  echo "   Current local stack: qwen3.8:27b | qwen3.8-distill-2b:q4_k_m"
   exit 0
 fi

@@ -51,7 +51,7 @@ Generated: {iso_now()}
 ## Current local model stack
 - Primary: qwen3.8:27b (configured)
 - Coding/fallback: qwen3.8:27b (configured)
-- Deriver: qwen2.5:3b (configured)
+- Deriver: qwen3.8-distill-2b:q4_k_m (configured)
 - Embeddings: nomic-embed-text via Ollama (configured)
 
 ## Tools, services, models, data, repos, and access

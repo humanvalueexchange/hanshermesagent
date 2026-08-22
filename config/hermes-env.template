@@ -12,5 +12,5 @@ OLLAMA_HOST=http://localhost:11434
 # Current resident local model roles; see config/llm-stack.yaml
 # HERMES_PRIMARY_MODEL=qwen3.5:27b-128k
 # HERMES_CODING_MODEL=gpt-oss:20b
-# HERMES_DERIVER_MODEL=qwen2.5:3b
+# HERMES_DERIVER_MODEL=qwen3.8-distill-2b:q4_k_m
 # HERMES_EMBEDDING_MODEL=nomic-embed-text

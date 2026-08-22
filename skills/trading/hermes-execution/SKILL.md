@@ -9,7 +9,7 @@ date: 2026-05-10
 # hermes-execution — Execution & Tooling Sub-Agent
 
 ## Overview
-Use the local `qwen2.5:3b` deriver for lightweight deterministic calculations and
+Use the local `qwen3.8-distill-2b:q4_k_m` deriver for lightweight deterministic calculations and
 `qwen3.8:27b` for code-generation or fallback reasoning after a trade has been
 approved. Verify outputs with tools before acting.
 

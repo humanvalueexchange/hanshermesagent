@@ -36,7 +36,7 @@ resident:
     context: 131072
     purpose: coding and fallback reasoning on the primary model
   deriver:
-    model: qwen2.5:3b
+    model: qwen3.8-distill-2b:q4_k_m
     context: 32768
     purpose: lightweight derivation and utility work
   embedding:

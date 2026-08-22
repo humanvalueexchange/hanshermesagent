@@ -41,7 +41,7 @@ def log_trade_cycle(symbol, direction, entry_price, stop, target, size_btc,
         "agents": {
             "primary": "qwen3.8:27b",
             "coding": "qwen3.8:27b",
-            "deriver": "qwen2.5:3b"
+            "deriver": "qwen3.8-distill-2b:q4_k_m"
         }
     }
     write_entry(entry)
