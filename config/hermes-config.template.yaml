@@ -300,6 +300,7 @@ memory:
 model:
   context_length: 131072
   default: qwen3.8:27b
+  ollama_num_ctx: 131072
   provider: ollama
 model_catalog:
   enabled: true

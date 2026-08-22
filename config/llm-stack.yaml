@@ -8,6 +8,7 @@ resident:
   primary:
     model: qwen3.8:27b
     context: 131072
+    ollama_num_ctx: 131072
     purpose: reasoning, routing, tool use, and final judgment
     think: true
     keep_alive: -1
@@ -34,14 +35,19 @@ resident:
   coding_fallback:
     model: qwen3.8:27b
     context: 131072
+    ollama_num_ctx: 131072
     purpose: coding and fallback reasoning on the primary model
   deriver:
     model: qwen3.8-distill-2b:q4_k_m
     context: 32768
+    ollama_num_ctx: 32768
+    keep_alive: -1
     purpose: lightweight derivation and utility work
   embedding:
     model: nomic-embed-text
     context: 2048
+    ollama_num_ctx: 2048
+    keep_alive: -1
     purpose: local knowledge retrieval embeddings
 
 # Installed but not resident; load only for an explicitly bounded task.

@@ -1,7 +1,8 @@
 [Unit]
 Description=Hermes Agent Gateway - Messaging Platform Integration
-After=network-online.target ollama.service
+After=network-online.target ollama.service hermes-model-preload.service
 Wants=network-online.target ollama.service
+Requires=hermes-model-preload.service
 StartLimitIntervalSec=0
 
 [Service]

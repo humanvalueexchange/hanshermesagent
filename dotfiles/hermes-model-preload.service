@@ -2,6 +2,8 @@
 Description=Hermes Model Preload — keeps the approved local Ollama stack hot
 Documentation=https://github.com/humanvalueexchange/hermes-cfo
 After=network-online.target
+Requires=ollama.service
+After=ollama.service
 
 [Service]
 Type=oneshot

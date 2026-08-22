@@ -21,8 +21,10 @@ Ollama is the local model runtime. The approved hot set on the DGX Spark is:
 | Embeddings | `nomic-embed-text:latest` | 2,048 |
 
 The models are served locally through Ollama with persistent keep-alive
-settings. Additional models may exist on disk, but are not part of the
-approved hot set.
+settings and explicit per-model context limits. The preload unit runs after
+Ollama and the gateway waits for preload completion, so normal boot does not
+start Hermes with the native 262K Qwen context and evict the auxiliary models.
+Additional models may exist on disk, but are not part of the approved hot set.
 
 ### Embedding backend
 
