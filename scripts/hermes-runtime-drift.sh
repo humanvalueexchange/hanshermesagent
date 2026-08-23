@@ -164,6 +164,25 @@ for warmup in \
   fi
 done
 
+coder_soul="$CODER_PROFILE/SOUL.md"
+if [[ -f "$coder_soul" ]] && \
+   grep -q 'qwen3.8-hermes:27b-128k' "$coder_soul" && \
+   grep -q '131,072-token runtime context' "$coder_soul"; then
+  pass "Hermes-coder SOUL documents the bounded primary model"
+else
+  fail "Hermes-coder SOUL is missing the bounded primary model policy"
+fi
+
+for cache in \
+  "$PROFILE/context_length_cache.yaml" \
+  "$CODER_PROFILE/context_length_cache.yaml"; do
+  if [[ -f "$cache" ]] && ! grep -q 'qwen3.8:27b' "$cache"; then
+    pass "context cache has no obsolete base-model entry: $cache"
+  else
+    fail "context cache contains an obsolete base-model entry: $cache"
+  fi
+done
+
 compare_file() {
   local source="$1"
   local destination="$2"
