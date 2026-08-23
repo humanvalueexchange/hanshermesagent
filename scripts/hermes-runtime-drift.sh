@@ -56,6 +56,15 @@ else
   [[ "${SUMMARY_MODEL_CONFIG__MODEL:-}" == "qwen3.8-distill-2b:q4_k_m" ]] \
     && pass "Honcho summary model uses the canonical 2B model" \
     || fail "Honcho summary model is not the canonical 2B model"
+  dialectic_ok=true
+  for level in minimal low medium high max; do
+    if ! grep -q "^DIALECTIC_LEVELS__${level}__MODEL_CONFIG__MODEL=qwen3.8-hermes:27b-128k$" "$HONCHO_ENV_FILE"; then
+      dialectic_ok=false
+    fi
+  done
+  [[ "$dialectic_ok" == true ]] \
+    && pass "Honcho dialectic levels use the bounded Qwen3.8 primary model" \
+    || fail "Honcho dialectic levels contain a non-canonical model"
 fi
 
 if [[ -f "$ENV_FILE" ]]; then

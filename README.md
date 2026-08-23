@@ -68,7 +68,9 @@ The drift check compares the live profile, hooks, managed user units,
 environment contract, service state, both Hermes profiles, scheduled jobs,
 warmup scripts, required Ollama models, and their live contexts with this
 checkout. `config/llm-stack.yaml` is the canonical model contract; any model
-or context change must update it first and then pass:
+or context change must update it first and then pass. Honcho's live dialectic
+levels are separately pinned to `qwen3.8-hermes:27b-128k`; its deriver and
+summary paths remain on `qwen3.8-distill-2b:q4_k_m`.
 
 ## Knowledge intake
 
