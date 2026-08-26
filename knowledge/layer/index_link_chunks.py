@@ -11,6 +11,8 @@ from pathlib import Path
 import lancedb
 import pyarrow as pa
 
+from embedding_contract import REQUEST_MODEL
+
 from build_lancedb_index import MODEL_NAME, TABLE_NAME
 from common import iter_jsonl, now_iso
 from ollama_embeddings import OllamaEmbedder
@@ -92,7 +94,7 @@ def index_chunks(root: Path, chunk_file: Path, manifest_path: Path) -> dict:
         else:
             table = None
 
-        embedder = OllamaEmbedder(MODEL_NAME)
+        embedder = OllamaEmbedder(REQUEST_MODEL)
         vectors = embedder.encode([record["text"] for record in records], "search_document")
         for record, vector in zip(records, vectors):
             record["vector"] = vector

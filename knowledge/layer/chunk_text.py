@@ -6,6 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
+from embedding_contract import CONTRACT_MODEL
+
 from common import (
     clear_failure,
     load_config,
@@ -113,7 +115,7 @@ def process_manifest(root: Path, manifest_path: Path, chunk_size: int, overlap: 
                 "page_end": chunk["page_end"],
                 "chunk_index": index,
                 "text": chunk_text,
-                "embedding_model": "nomic-embed-text",
+                "embedding_model": CONTRACT_MODEL,
                 "chunk_hash": sha256_text(chunk_text),
                 "created_at": now_iso(),
                 "publisher": metadata["publisher"],

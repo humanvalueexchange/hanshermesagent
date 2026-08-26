@@ -21,6 +21,10 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Callable
 
+from typing import Any, Callable
+
+from knowledge.layer.embedding_contract import CONTRACT_MODEL
+
 from websockets.sync.client import connect as websocket_connect
 
 
@@ -600,7 +604,7 @@ def _build_chunk_records(
             "page_end": 1,
             "chunk_index": index,
             "text": chunk,
-            "embedding_model": "nomic-embed-text",
+            "embedding_model": CONTRACT_MODEL,
             "chunk_hash": _sha256_text(chunk),
             "created_at": created_at,
             "publisher": None,

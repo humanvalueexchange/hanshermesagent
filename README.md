@@ -18,7 +18,7 @@ Ollama is the local model runtime. The approved hot set on the DGX Spark is:
 | Primary Hermes reasoning and orchestration | `qwen3.8-hermes:27b-128k` | 131,072 |
 | Coding and fallback reasoning | `qwen3.8-hermes:27b-128k` | 131,072 |
 | Lightweight derivation and utility work | `qwen3.8-distill-2b:q4_k_m` | 32,768 |
-| Embeddings | `nomic-embed-text:latest` | 2,048 |
+| Embeddings | `nomic-embed-text:latest` (`nomic-embed-text-v1.5` contract) | 768 |
 
 The models are served locally through Ollama with persistent keep-alive
 settings and explicit per-model context limits. The preload unit runs after
@@ -31,7 +31,8 @@ on-demand evaluation and is intentionally not preloaded.
 ### Embedding backend
 
 The knowledge indexer and query path use the local Ollama `/api/embed`
-endpoint with `nomic-embed-text`. Requests are sent to
+endpoint with the `nomic-embed-text` request alias. LanceDB persists and
+validates the canonical `nomic-embed-text-v1.5` contract identity. Requests are sent to
 `http://127.0.0.1:11434/api/embed`, use the `search_document` and
 `search_query` prefixes, enforce bounded timeouts, and reject invalid or
 inconsistent vectors. There is no cloud fallback.

@@ -32,7 +32,7 @@ runtime:
 
 retrieval:
   vector_store: LanceDB
-  embedding_model: nomic-embed-text
+  embedding_model: nomic-embed-text-v1.5
   chunk_size_chars: 2400
   chunk_overlap_chars: 250
 

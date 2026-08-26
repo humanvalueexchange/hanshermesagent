@@ -7,17 +7,18 @@ from pathlib import Path
 
 import lancedb
 
+from embedding_contract import REQUEST_MODEL
+
 from ollama_embeddings import OllamaEmbedder
 from index_link_chunks import validate_index_compatibility
 
 
-MODEL_NAME = "nomic-embed-text"
 TABLE_NAME = "library_chunks"
 
 
 class QueryEmbedder:
     def __init__(self, _legacy_cache_dir: Path | None = None) -> None:
-        self.embedder = OllamaEmbedder(MODEL_NAME)
+        self.embedder = OllamaEmbedder(REQUEST_MODEL)
 
     def encode(self, text: str) -> list[float]:
         return self.embedder.encode([text], "search_query")[0]

@@ -9,11 +9,13 @@ from pathlib import Path
 
 import lancedb
 
+from embedding_contract import CONTRACT_MODEL, REQUEST_MODEL
+
 from common import iter_jsonl, load_manifest, now_iso, save_manifest
 from ollama_embeddings import OllamaEmbedder
 
 
-MODEL_NAME = "nomic-embed-text"
+MODEL_NAME = CONTRACT_MODEL
 TABLE_NAME = "library_chunks"
 
 
@@ -51,7 +53,7 @@ def main() -> int:
             print(f"PASS records=0 root={root}")
             return 0
 
-        embedder = OllamaEmbedder(MODEL_NAME)
+        embedder = OllamaEmbedder(REQUEST_MODEL)
         embeddings = embedder.encode([record["text"] for record in records], "search_document")
         for record, vector in zip(records, embeddings):
             record["vector"] = vector
