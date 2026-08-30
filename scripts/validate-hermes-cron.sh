@@ -37,15 +37,23 @@ for name, schedule in expected.items():
     if not str(job.get("deliver", "")).startswith("whatsapp:"):
         errors.append(f"{name}: delivery is not WhatsApp")
     if name == "twin-morning-brief-local-qwen":
-        if not job.get("no_agent"):
-            errors.append(f"{name}: must remain no-agent deterministic execution")
+        if job.get("no_agent"):
+            errors.append(f"{name}: must use agent-driven synthesis")
         if job.get("script") != "hermes-morning-brief.py":
             errors.append(f"{name}: expected canonical script hermes-morning-brief.py")
         if job.get("model") != "qwen3.8-hermes:27b-128k":
             errors.append(f"{name}: expected qwen3.8-hermes:27b-128k model metadata")
         if job.get("provider") != "custom":
             errors.append(f"{name}: expected custom provider metadata")
+        if job.get("reasoning_effort") != "high":
+            errors.append(f"{name}: expected high reasoning effort")
+        if not {"web", "file"}.issubset(set(job.get("enabled_toolsets") or [])):
+            errors.append(f"{name}: web and file toolsets are required")
         prompt = str(job.get("prompt", ""))
+        prompt_lower = prompt.lower()
+        for required in ("astro-weather seed", "exact urls", "uncertainty", "local-only"):
+            if required not in prompt_lower:
+                errors.append(f"{name}: prompt missing {required} contract")
         if "qwen3.5" in prompt or "EST" in prompt:
             errors.append(f"{name}: stale model or timezone wording in contract")
         script_path = Path.home() / ".hermes" / "profiles" / Path(sys.argv[1]).parent.parent.name / "scripts" / "hermes-morning-brief.py"
