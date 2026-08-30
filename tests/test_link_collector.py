@@ -210,6 +210,84 @@ class LinkCollectorTests(unittest.TestCase):
         self.assertFalse(result["indexed"])
         indexer.assert_not_called()
 
+    def test_detects_youtube_url_forms(self) -> None:
+        video_id = "dQw4w9WgXcQ"
+        for url in (
+            f"https://www.youtube.com/watch?v={video_id}&si=tracking",
+            f"https://youtu.be/{video_id}?si=tracking",
+            f"https://youtube.com/shorts/{video_id}",
+            f"https://www.youtube.com/embed/{video_id}",
+            f"https://www.youtube.com/live/{video_id}",
+        ):
+            self.assertTrue(link_collector.is_youtube_url(url))
+            self.assertEqual(
+                link_collector.canonicalize_youtube_url(url),
+                f"https://www.youtube.com/watch?v={video_id}",
+            )
+
+    def test_archives_youtube_transcript_with_provenance_and_deduplication(self) -> None:
+        transcript = {
+            "video_id": "dQw4w9WgXcQ",
+            "segment_count": 2,
+            "duration": "0:12",
+            "language": "en",
+            "full_text": "First transcript segment. Second transcript segment.",
+            "timestamped_text": "0:00 First transcript segment.\n0:06 Second transcript segment.",
+        }
+        indexer = lambda _root, _chunks, _manifest: {
+            "indexed": True,
+            "status": "indexed",
+            "table": "library_chunks",
+            "indexed_at": "2026-08-29T00:00:00+00:00",
+        }
+        first = link_collector.archive_link(
+            "https://youtu.be/dQw4w9WgXcQ?si=abc",
+            "Telegram source",
+            root=self.root,
+            transcript_fetcher=lambda _url: transcript,
+            indexer=indexer,
+        )
+        second = link_collector.archive_link(
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "Duplicate source",
+            root=self.root,
+            transcript_fetcher=mock.Mock(side_effect=AssertionError("duplicate refetched")),
+            indexer=indexer,
+        )
+
+        self.assertEqual(first["status"], "completed")
+        self.assertTrue(first["archived"])
+        self.assertTrue(first["transcript_archived"])
+        self.assertTrue(first["indexed"])
+        self.assertEqual(second["status"], "duplicate_completed")
+        self.assertTrue(second["duplicate"])
+        manifest = json.loads(Path(first["manifest_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(manifest["source_type"], "youtube_video")
+        self.assertEqual(manifest["video_id"], "dQw4w9WgXcQ")
+        self.assertEqual(manifest["transcript_status"], "completed")
+        self.assertEqual(manifest["capture_count"], 2)
+        self.assertTrue(Path(first["source_metadata_path"]).is_file())
+        self.assertTrue(Path(first["transcript_path"]).is_file())
+        self.assertTrue(Path(first["timestamped_transcript_path"]).is_file())
+        chunks = Path(first["chunk_path"]).read_text(encoding="utf-8")
+        self.assertIn('"chapter": "YouTube transcript"', chunks)
+
+    def test_youtube_transcript_failure_is_explicit_and_retryable(self) -> None:
+        result = link_collector.archive_youtube(
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            root=self.root,
+            transcript_fetcher=mock.Mock(
+                side_effect=link_collector.LinkCollectorError("No transcript found")
+            ),
+        )
+
+        self.assertEqual(result["status"], "no_transcript")
+        self.assertTrue(result["archived"])
+        self.assertFalse(result["transcript_archived"])
+        manifest = json.loads(Path(result["manifest_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(manifest["transcript_status"], "no_transcript")
+        self.assertEqual(manifest["status"], "no_transcript")
+
     def test_pdf_capture_history_is_append_only(self) -> None:
         from tools import pdf_collector
 

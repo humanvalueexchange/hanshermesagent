@@ -76,10 +76,13 @@ def read_link_document(document_id: str, max_chars: int = 12000) -> dict[str, An
         "status": "ok",
         "document_id": document_id,
         "title": manifest.get("title"),
+        "video_id": manifest.get("video_id"),
         "canonical_url": manifest.get("canonical_url"),
         "capture_context": [item.get("capture_context") for item in manifest.get("captures", [])],
         "captured_at": manifest.get("captured_at"),
         "indexed": manifest.get("status") == "indexed",
+        "transcript_status": manifest.get("transcript_status"),
+        "transcript_path": manifest.get("transcript_path"),
         "text": text[:safe_max_chars],
         "truncated": len(text) > safe_max_chars,
     }
@@ -98,7 +101,7 @@ def list_recent_links(hours: int = 24, max_results: int = 50) -> list[dict[str, 
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        if not isinstance(manifest, dict) or manifest.get("source_type") != "web_link":
+        if not isinstance(manifest, dict) or manifest.get("source_type") not in {"web_link", "youtube_video"}:
             continue
 
         recent_captures = []
@@ -120,11 +123,13 @@ def list_recent_links(hours: int = 24, max_results: int = 50) -> list[dict[str, 
             {
                 "document_id": manifest.get("document_id"),
                 "title": manifest.get("title"),
+                "video_id": manifest.get("video_id"),
                 "canonical_url": manifest.get("canonical_url"),
                 "captured_at": latest.get("captured_at"),
                 "capture_context": latest.get("capture_context"),
                 "recent_capture_count": len(recent_captures),
                 "indexed": manifest.get("status") == "indexed",
+                "transcript_status": manifest.get("transcript_status"),
                 "index_status": manifest.get("index_status"),
                 "chunk_count": manifest.get("chunk_count", 0),
                 "manifest_path": str(manifest_path),

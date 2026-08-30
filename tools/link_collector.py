@@ -38,6 +38,11 @@ CDP_ENDPOINT = "http://127.0.0.1:9222"
 CDP_RENDER_TIMEOUT = 30
 DEFAULT_CHUNK_SIZE = 2400
 DEFAULT_CHUNK_OVERLAP = 250
+HERMES_PYTHON = Path("/home/hans/.hermes/hermes-agent/venv/bin/python")
+YOUTUBE_TRANSCRIPT_HELPER = Path(
+    "/home/hans/.hermes/profiles/hanshermesagent/skills/media/youtube-content/scripts/fetch_transcript.py"
+)
+YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"}
 TRACKING_PARAMETERS = {
     "fbclid",
     "gclid",
@@ -589,6 +594,7 @@ def _build_chunk_records(
     author: str | None,
     text: str,
     created_at: str,
+    chapter: str = "Web article",
 ) -> list[dict[str, Any]]:
     chunk_size, overlap = _load_chunk_settings()
     return [
@@ -599,7 +605,7 @@ def _build_chunk_records(
             "sha256": content_sha256,
             "book": title,
             "author": author,
-            "chapter": "Web article",
+            "chapter": chapter,
             "page_start": 1,
             "page_end": 1,
             "chunk_index": index,
@@ -665,6 +671,254 @@ def _capture_event(requested_url: str, capture_context: str | None) -> dict[str,
         "capture_context": capture_context,
         "capture_source": "telegram_collector",
     }
+
+
+def extract_youtube_video_id(url: str) -> str | None:
+    """Return the stable YouTube video ID for supported public URL forms."""
+    try:
+        parsed = urllib.parse.urlsplit(url.strip())
+    except ValueError:
+        return None
+    host = (parsed.hostname or "").rstrip(".").lower()
+    if host not in YOUTUBE_HOSTS:
+        return None
+    if host == "youtu.be":
+        candidate = parsed.path.lstrip("/").split("/", 1)[0]
+    elif parsed.path.startswith("/watch"):
+        candidate = urllib.parse.parse_qs(parsed.query).get("v", [""])[0]
+    else:
+        candidate = parsed.path.strip("/").split("/", 1)[-1]
+        if parsed.path.startswith(("/shorts/", "/embed/", "/live/")):
+            candidate = parsed.path.split("/", 2)[2] if len(parsed.path.split("/", 2)) > 2 else ""
+    return candidate if re.fullmatch(r"[A-Za-z0-9_-]{11}", candidate) else None
+
+
+def canonicalize_youtube_url(url: str) -> str:
+    video_id = extract_youtube_video_id(url)
+    if not video_id:
+        raise LinkCollectorError("URL is not a supported YouTube video URL")
+    return f"https://www.youtube.com/watch?v={video_id}"
+
+
+def is_youtube_url(url: str) -> bool:
+    return extract_youtube_video_id(url) is not None
+
+
+def _youtube_error_status(error: str) -> str:
+    lowered = error.lower()
+    if "disabled" in lowered or "no transcript" in lowered or "not found" in lowered:
+        return "no_transcript"
+    if any(marker in lowered for marker in ("private", "unavailable", "video unavailable", "does not exist")):
+        return "unavailable"
+    if "youtube-transcript-api not installed" in lowered:
+        return "dependency_missing"
+    return "failed"
+
+
+def _fetch_youtube_transcript(canonical_url: str) -> dict[str, Any]:
+    if not HERMES_PYTHON.is_file() or not YOUTUBE_TRANSCRIPT_HELPER.is_file():
+        raise LinkCollectorError("YouTube transcript runtime is unavailable")
+    try:
+        completed = subprocess.run(
+            [str(HERMES_PYTHON), str(YOUTUBE_TRANSCRIPT_HELPER), canonical_url, "--timestamps"],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise LinkCollectorError(f"Transcript extraction failed: {exc}") from exc
+    output = (completed.stdout or "").strip()
+    try:
+        payload = json.loads(output) if output else {}
+    except json.JSONDecodeError as exc:
+        raise LinkCollectorError("Transcript helper returned invalid JSON") from exc
+    if completed.returncode != 0 or payload.get("error"):
+        raise LinkCollectorError(str(payload.get("error") or (completed.stderr or "").strip() or "Transcript extraction failed"))
+    if not payload.get("full_text") or not payload.get("video_id"):
+        raise LinkCollectorError("Transcript helper returned no transcript text")
+    return payload
+
+
+def _youtube_result(manifest: dict[str, Any], *, duplicate: bool, error: str | None = None) -> dict[str, Any]:
+    if error:
+        status = (
+            "completed_not_indexed"
+            if manifest.get("transcript_status") == "completed"
+            else manifest.get("transcript_status", "failed")
+        )
+    elif duplicate:
+        status = "duplicate_completed"
+    else:
+        status = "completed"
+    return {
+        "status": status,
+        "archived": manifest.get("source_archive_status") == "completed",
+        "transcript_archived": manifest.get("transcript_status") == "completed",
+        "indexed": manifest.get("indexed") is True,
+        "duplicate": duplicate,
+        "video_id": manifest.get("video_id"),
+        "document_id": manifest.get("document_id"),
+        "canonical_url": manifest.get("canonical_url"),
+        "manifest_path": manifest.get("manifest_path"),
+        "source_metadata_path": manifest.get("source_metadata_path"),
+        "transcript_path": manifest.get("transcript_path"),
+        "timestamped_transcript_path": manifest.get("timestamped_transcript_path"),
+        "chunk_path": manifest.get("chunk_path"),
+        "chunk_count": manifest.get("chunk_count", 0),
+        "index_table": manifest.get("index_table"),
+        "provenance": {
+            "capture_source": manifest.get("capture_source"),
+            "captured_at": manifest.get("captured_at"),
+            "source_sha256": manifest.get("source_sha256"),
+            "transcript_sha256": manifest.get("transcript_sha256"),
+            "capture_count": len(manifest.get("captures", [])),
+        },
+        "error": error or manifest.get("transcript_error") or manifest.get("index_error"),
+    }
+
+
+def archive_youtube(
+    url: str,
+    capture_context: str | None = None,
+    *,
+    root: Path = DEFAULT_ROOT,
+    transcript_fetcher: Callable[[str], dict[str, Any]] = _fetch_youtube_transcript,
+    indexer: Callable[[Path, Path, Path], dict[str, Any]] = index_link_chunks,
+) -> dict[str, Any]:
+    """Archive a YouTube URL and its transcript as linked, provenance-rich artifacts."""
+    context = _sanitize_context(capture_context)
+    try:
+        canonical_url = canonicalize_youtube_url(url)
+    except LinkCollectorError as exc:
+        return {"status": "rejected", "archived": False, "transcript_archived": False, "indexed": False, "error": str(exc)}
+
+    video_id = extract_youtube_video_id(canonical_url)
+    assert video_id is not None
+    document_id = _document_id(canonical_url)
+    manifest_path = root / "state" / "manifests" / f"{document_id}.json"
+    source_metadata_path = root / "raw" / "youtube" / f"{video_id}.metadata.json"
+    transcript_path = root / "processed" / "transcripts" / f"{video_id}.json"
+    timestamped_path = root / "processed" / "transcripts" / f"{video_id}.timestamps.txt"
+    chunk_path = root / "processed" / "chunks" / f"{document_id}.jsonl"
+    capture = _capture_event(canonical_url, context)
+    previous_manifest: dict[str, Any] = {}
+
+    with _collector_lock(root):
+        existing = _read_json(manifest_path, {})
+        if isinstance(existing, dict) and existing.get("source_type") == "youtube_video":
+            previous_manifest = existing
+            captures = existing.setdefault("captures", [])
+            captures.append(capture)
+            existing["capture_count"] = len(captures)
+            _write_json(manifest_path, existing)
+            if existing.get("transcript_status") == "completed":
+                return _youtube_result(existing, duplicate=True)
+
+    source_metadata = {
+        "document_id": document_id,
+        "source_type": "youtube_video",
+        "video_id": video_id,
+        "canonical_url": canonical_url,
+        "capture_source": "telegram_collector",
+        "capture_context": context,
+        "captured_at": capture["captured_at"],
+        "source_archive_status": "completed",
+        "source_sha256": _sha256_text(canonical_url),
+    }
+    manifest = {
+        **source_metadata,
+        "source_path": str(source_metadata_path),
+        "source_metadata_path": str(source_metadata_path),
+        "captures": [*previous_manifest.get("captures", []), capture],
+        "capture_count": len(previous_manifest.get("captures", [])) + 1,
+        "discovered_at": capture["captured_at"],
+        "transcript_status": "processing",
+        "transcript_error": None,
+        "transcript_path": str(transcript_path),
+        "timestamped_transcript_path": str(timestamped_path),
+        "extracted_text_path": str(timestamped_path),
+        "fetch_status": "completed",
+        "extraction_status": "processing",
+        "chunk_status": "not_attempted",
+        "chunk_count": 0,
+        "chunk_path": str(chunk_path),
+        "index_status": "not_attempted",
+        "index_table": None,
+        "index_error": None,
+        "indexed": False,
+        "manifest_version": "1.0",
+        "pipeline_version": "youtube-transcript-v1",
+        "manifest_path": str(manifest_path),
+    }
+    with _collector_lock(root):
+        _write_json(source_metadata_path, source_metadata)
+        _write_json(manifest_path, manifest)
+
+    try:
+        transcript = transcript_fetcher(canonical_url)
+        full_text = str(transcript["full_text"]).strip()
+        timestamped_text = str(transcript.get("timestamped_text") or full_text).strip()
+        fetched_at = _now_iso()
+        transcript_payload = {
+            "document_id": document_id,
+            "source_type": "youtube_video",
+            "video_id": video_id,
+            "canonical_url": canonical_url,
+            "captured_at": capture["captured_at"],
+            "fetched_at": fetched_at,
+            "language": transcript.get("language"),
+            "segment_count": transcript.get("segment_count"),
+            "duration": transcript.get("duration"),
+            "full_text": full_text,
+            "timestamped_text": timestamped_text,
+        }
+        processed_text = (
+            f"YouTube transcript: {canonical_url}\n"
+            f"Video ID: {video_id}\n\n{timestamped_text}"
+        )
+        records = _build_chunk_records(
+            document_id,
+            transcript_path,
+            _sha256_text(full_text),
+            str(transcript.get("title") or f"YouTube video {video_id}"),
+            None,
+            processed_text,
+            fetched_at,
+            chapter="YouTube transcript",
+        )
+        manifest.update(
+            {
+                "title": transcript.get("title") or f"YouTube video {video_id}",
+                "language": transcript.get("language"),
+                "duration": transcript.get("duration"),
+                "segment_count": transcript.get("segment_count"),
+                "fetched_at": fetched_at,
+                "transcript_status": "completed",
+                "transcript_sha256": _sha256_text(full_text),
+                "extraction_status": "completed",
+                "chunk_status": "completed",
+                "chunk_count": len(records),
+                "index_status": "pending" if records else "not_attempted",
+            }
+        )
+        with _collector_lock(root):
+            _write_json(transcript_path, transcript_payload)
+            _atomic_write(timestamped_path, (timestamped_text + "\n").encode("utf-8"))
+            _write_jsonl(chunk_path, records)
+            _write_json(manifest_path, manifest)
+        result = _index_and_finalize(root, manifest_path, manifest, indexer, duplicate=False)
+        manifest = _read_json(manifest_path, manifest)
+        manifest["indexed"] = result.get("indexed") is True
+        _write_json(manifest_path, manifest)
+        return _youtube_result(manifest, duplicate=False, error=result.get("error"))
+    except Exception as exc:
+        error = str(exc)
+        manifest["transcript_status"] = _youtube_error_status(error)
+        manifest["transcript_error"] = error
+        manifest["status"] = manifest["transcript_status"]
+        _write_json(manifest_path, manifest)
+        return _youtube_result(manifest, duplicate=False, error=error)
 
 
 def _result(manifest: dict[str, Any], *, duplicate: bool, indexed: bool, error: str | None = None) -> dict[str, Any]:
@@ -766,9 +1020,18 @@ def archive_link(
     *,
     root: Path = DEFAULT_ROOT,
     fetcher: Callable[[str], dict[str, Any]] = fetch_public_html,
+    transcript_fetcher: Callable[[str], dict[str, Any]] = _fetch_youtube_transcript,
     indexer: Callable[[Path, Path, Path], dict[str, Any]] = index_link_chunks,
 ) -> dict[str, Any]:
     context = _sanitize_context(capture_context)
+    if is_youtube_url(url):
+        return archive_youtube(
+            url,
+            context,
+            root=root,
+            transcript_fetcher=transcript_fetcher,
+            indexer=indexer,
+        )
     try:
         requested_canonical = canonicalize_url(url)
         _validate_public_target(requested_canonical)
