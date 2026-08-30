@@ -122,7 +122,7 @@ def job_scope(job: dict[str, Any]) -> str:
         return "hve_life_os_required_retarget" if "HVE-LIFE-OS" not in prompt else "hve_life_os"
     if name == "gmail-daily-hans-memory":
         return "hve_gmail_intelligence"
-    if name == "twin-morning-brief-local-qwen-6am-EST":
+    if name == "twin-morning-brief-local-qwen":
         return "hve_daily_operating_brief"
     if name.startswith("hve-"):
         return "hve_life_os_review_required"
