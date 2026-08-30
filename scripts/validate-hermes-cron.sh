@@ -51,7 +51,7 @@ for name, schedule in expected.items():
             errors.append(f"{name}: web and file toolsets are required")
         prompt = str(job.get("prompt", ""))
         prompt_lower = prompt.lower()
-        for required in ("astro-weather seed", "exact urls", "uncertainty", "local-only"):
+        for required in ("astro-weather seed", "exact urls", "exactly three", "9000 characters", "uncertainty", "local-only"):
             if required not in prompt_lower:
                 errors.append(f"{name}: prompt missing {required} contract")
         if "qwen3.5" in prompt or "EST" in prompt:
@@ -75,6 +75,9 @@ PY
 PROFILE_CONFIG="$HOME/.hermes/profiles/$ACTIVE_PROFILE/config.yaml"
 EXPECTED_LINK_COLLECTOR="/home/hans/hanshermesagent/mcp/link_collector_server.py"
 EXPECTED_LINK_LIBRARY="/home/hans/hanshermesagent/mcp/link_library_server.py"
+EXPECTED_LIGHTPANDA_BINARY="/home/hans/.local/bin/lightpanda"
+EXPECTED_LIGHTPANDA_PLUGIN="/home/hans/hanshermesagent/plugins/lightpanda"
+GATEWAY_OVERRIDE="$HOME/.config/systemd/user/hermes-gateway-hanshermesagent.service.d/override.conf"
 
 [[ -f "$PROFILE_CONFIG" ]] || {
   echo "FAIL"
@@ -100,3 +103,51 @@ if grep -Fq "/home/hans/hermes-cfo/mcp/link_" "$PROFILE_CONFIG"; then
   echo "- active profile contains stale hermes-cfo link MCP path"
   exit 1
 fi
+
+[[ -x "$EXPECTED_LIGHTPANDA_BINARY" ]] || {
+  echo "FAIL"
+  echo "- missing executable Lightpanda binary: $EXPECTED_LIGHTPANDA_BINARY"
+  exit 1
+}
+
+[[ -f "$EXPECTED_LIGHTPANDA_PLUGIN/plugin.yaml" && -f "$EXPECTED_LIGHTPANDA_PLUGIN/provider.py" ]] || {
+  echo "FAIL"
+  echo "- incomplete Lightpanda plugin: $EXPECTED_LIGHTPANDA_PLUGIN"
+  exit 1
+}
+
+grep -Fq "extract_backend: lightpanda" "$PROFILE_CONFIG" || {
+  echo "FAIL"
+  echo "- active profile does not select Lightpanda for web extraction"
+  exit 1
+}
+
+grep -Fq "web-lightpanda" "$PROFILE_CONFIG" || {
+  echo "FAIL"
+  echo "- active profile does not enable the Lightpanda plugin"
+  exit 1
+}
+
+grep -Fq "request_timeout_seconds: 300" "$PROFILE_CONFIG" || {
+  echo "FAIL"
+  echo "- active profile does not set the local provider request timeout to 300 seconds"
+  exit 1
+}
+
+grep -Fq "stale_timeout_seconds: 300" "$PROFILE_CONFIG" || {
+  echo "FAIL"
+  echo "- active profile does not set the local provider stale timeout to 300 seconds"
+  exit 1
+}
+
+grep -Fq 'Environment="HERMES_CRON_TIMEOUT=900"' "$GATEWAY_OVERRIDE" || {
+  echo "FAIL"
+  echo "- gateway Cron timeout must remain 900 seconds"
+  exit 1
+}
+
+grep -Fq 'Environment="HERMES_API_CALL_STALE_TIMEOUT=300"' "$GATEWAY_OVERRIDE" || {
+  echo "FAIL"
+  echo "- gateway API stale timeout must be 300 seconds"
+  exit 1
+}

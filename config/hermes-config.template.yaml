@@ -395,6 +395,8 @@ providers:
     - qwen3.8-distill-2b:q4_k_m
     - nomic-embed-text
     name: Ollama
+    request_timeout_seconds: 300
+    stale_timeout_seconds: 300
 quick_commands: {}
 security:
   allow_private_urls: false
@@ -553,7 +555,7 @@ voice:
   silence_threshold: 200
 web:
   backend: firecrawl
-  extract_backend: ''
+  extract_backend: lightpanda
   search_backend: ''
   use_gateway: false
 whatsapp: {}
