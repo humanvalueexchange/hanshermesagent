@@ -71,3 +71,32 @@ for name in expected:
     job = by_name[name]
     print(f"- {name}: {job.get('schedule_display')} -> {job.get('deliver')}; next={job.get('next_run_at')}")
 PY
+
+PROFILE_CONFIG="$HOME/.hermes/profiles/$ACTIVE_PROFILE/config.yaml"
+EXPECTED_LINK_COLLECTOR="/home/hans/hanshermesagent/mcp/link_collector_server.py"
+EXPECTED_LINK_LIBRARY="/home/hans/hanshermesagent/mcp/link_library_server.py"
+
+[[ -f "$PROFILE_CONFIG" ]] || {
+  echo "FAIL"
+  echo "- missing active profile config: $PROFILE_CONFIG"
+  exit 1
+}
+
+for path in "$EXPECTED_LINK_COLLECTOR" "$EXPECTED_LINK_LIBRARY"; do
+  [[ -f "$path" ]] || {
+    echo "FAIL"
+    echo "- missing configured MCP server: $path"
+    exit 1
+  }
+  grep -Fq "command: $path" "$PROFILE_CONFIG" || {
+    echo "FAIL"
+    echo "- active profile does not configure MCP server: $path"
+    exit 1
+  }
+done
+
+if grep -Fq "/home/hans/hermes-cfo/mcp/link_" "$PROFILE_CONFIG"; then
+  echo "FAIL"
+  echo "- active profile contains stale hermes-cfo link MCP path"
+  exit 1
+fi
