@@ -5,7 +5,7 @@ import os
 import urllib.parse
 import urllib.request
 
-VALID_REPOS = ("hermes-cfo", "mercury")
+VALID_REPOS = ("hanshermesagent", "mercury")
 VALID_STATES = ("open", "closed", "all")
 
 
@@ -42,9 +42,9 @@ def _request_github_json(
         return json.loads(response.read())
 
 
-def read_github_issue(issue_number: int, repo: str = "hermes-cfo") -> str:
+def read_github_issue(issue_number: int, repo: str = "hanshermesagent") -> str:
     if repo not in VALID_REPOS:
-        return "ERROR: repo must be 'hermes-cfo' or 'mercury'"
+        return "ERROR: repo must be 'hanshermesagent' or 'mercury'"
 
     token = _load_github_token()
     if not token:
@@ -95,9 +95,9 @@ def read_github_issue(issue_number: int, repo: str = "hermes-cfo") -> str:
     return "\n".join(lines)
 
 
-def comment_github_issue(issue_number: int, comment_body: str, repo: str = "hermes-cfo") -> str:
+def comment_github_issue(issue_number: int, comment_body: str, repo: str = "hanshermesagent") -> str:
     if repo not in VALID_REPOS:
-        return "ERROR: repo must be 'hermes-cfo' or 'mercury'"
+        return "ERROR: repo must be 'hanshermesagent' or 'mercury'"
 
     if not comment_body or not comment_body.strip():
         return "ERROR: comment_body cannot be empty"
@@ -123,13 +123,13 @@ def comment_github_issue(issue_number: int, comment_body: str, repo: str = "herm
 
 
 def list_github_issues(
-    repo: str = "hermes-cfo",
+    repo: str = "hanshermesagent",
     state: str = "open",
     label: str = "",
     limit: int = 20,
 ) -> str:
     if repo not in VALID_REPOS:
-        return "ERROR: repo must be 'hermes-cfo' or 'mercury'"
+        return "ERROR: repo must be 'hanshermesagent' or 'mercury'"
 
     if state not in VALID_STATES:
         return "ERROR: state must be 'open', 'closed', or 'all'"

@@ -83,12 +83,12 @@ else
 fi
 
 # ── Test 6: Hermes-cfo repo present ─────────────────────────────
-info "Checking hermes-cfo repo on DGX Spark..."
-REPO_CHECK=$(ssh -o ConnectTimeout=5 -o BatchMode=yes "hans@$DGX" "test -f ~/hermes-cfo/scripts/test-tool-enforcement.sh && echo FOUND || echo MISSING" 2>/dev/null || echo "SSH_FAILED")
+info "Checking hanshermesagent repo on DGX Spark..."
+REPO_CHECK=$(ssh -o ConnectTimeout=5 -o BatchMode=yes "hans@$DGX" "test -f ~/hanshermesagent/scripts/test-tool-enforcement.sh && echo FOUND || echo MISSING" 2>/dev/null || echo "SSH_FAILED")
 if [ "$REPO_CHECK" = "FOUND" ]; then
-  pass "hermes-cfo repo present at ~/hermes-cfo"
+  pass "hanshermesagent repo present at ~/hanshermesagent"
 else
-  fail "hermes-cfo repo missing — run: ssh hans@$DGX 'git clone https://github.com/humanvalueexchange/hermes-cfo.git ~/hermes-cfo'"
+  fail "hanshermesagent repo missing — run: ssh hans@$DGX 'git clone https://github.com/humanvalueexchange/hanshermesagent.git ~/hanshermesagent'"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────
@@ -104,6 +104,6 @@ if [ $FAIL -gt 0 ]; then
   exit 1
 else
   echo -e "${GREEN}✅ All checks passed. Vulcan is ready to run the dev loop.${NC}"
-  echo "   Next: bash ~/hermes-cfo/scripts/test-tool-enforcement.sh (run via SSH)"
+  echo "   Next: bash ~/hanshermesagent/scripts/test-tool-enforcement.sh (run via SSH)"
   exit 0
 fi

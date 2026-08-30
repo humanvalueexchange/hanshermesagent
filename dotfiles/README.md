@@ -31,7 +31,7 @@ Hermes native skills are loaded directly from the repository via `skills.externa
 ```yaml
 skills:
   external_dirs:
-    - /home/hans/hermes-cfo/skills/hve
+    - /home/hans/hanshermesagent/skills/hve
 ```
 
 Changes to `skills/hve/**/SKILL.md` require a Hermes gateway restart after deploy.
@@ -42,7 +42,7 @@ Changes to `skills/hve/**/SKILL.md` require a Hermes gateway restart after deplo
 
 ```bash
 # Full automated deploy (diffs + restarts only what changed)
-cd ~/hermes-cfo && bash scripts/hermes-deploy.sh
+cd ~/hanshermesagent && bash scripts/hermes-deploy.sh
 
 # Deploy SOUL.md only (no restart required)
 cp dotfiles/SOUL.md ~/.hermes/profiles/<active-profile>/SOUL.md
@@ -56,8 +56,8 @@ systemctl --user daemon-reload
 systemctl --user restart hermes-gateway.service
 
 # Deploy data-refresh as SYSTEM unit (requires sudo)
-sudo cp ~/hermes-cfo/dotfiles/hermes-data-refresh.service /etc/systemd/system/
-sudo cp ~/hermes-cfo/dotfiles/hermes-data-refresh.timer /etc/systemd/system/
+sudo cp ~/hanshermesagent/dotfiles/hermes-data-refresh.service /etc/systemd/system/
+sudo cp ~/hanshermesagent/dotfiles/hermes-data-refresh.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now hermes-data-refresh.timer
 ```

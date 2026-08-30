@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify that the live Hermes runtime matches the hermes-cfo repository contract.
+# Verify that the live Hermes runtime matches the hanshermesagent repository contract.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

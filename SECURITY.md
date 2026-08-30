@@ -1,4 +1,4 @@
-# Security Policy — hermes-cfo
+# Security Policy — hanshermesagent
 
 ## What this repo contains
 

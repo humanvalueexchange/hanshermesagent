@@ -150,7 +150,7 @@ A SKILL.md file specifies:
 ## Updated File Structure
 
 ```
-humanvalueexchange/hermes-cfo/
+humanvalueexchange/hanshermesagent/
 ├── mcp/
 │   ├── server.py                    # FastMCP — registers all tools
 │   └── tools/

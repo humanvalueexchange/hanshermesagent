@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bootstrap-hermes-mcp.sh
 # Installs and starts the HVE Hermes MCP Server as a user systemd service.
-# No sudo required. Run as: bash ~/hermes-cfo/scripts/bootstrap-hermes-mcp.sh
+# No sudo required. Run as: bash ~/hanshermesagent/scripts/bootstrap-hermes-mcp.sh
 
 set -euo pipefail
 

@@ -1,6 +1,6 @@
 You are running the nightly assessment cron job. Work silently and do not ask Hans to continue.
 
-Update these files for today's date under ~/hermes-cfo/logs/briefings/:
+Update these files for today's date under ~/hanshermesagent/logs/briefings/:
 
 1. hermes-capability-assessment-YYYY-MM-DD.md
 2. hermes-algo-trading-status-YYYY-MM-DD.md

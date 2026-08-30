@@ -20,7 +20,7 @@ Access details are shared privately with authorized team members only. Contact H
 | SSH | `ssh hans@[DGX_TAILSCALE_IP]` |
 | Ollama | `http://[DGX_TAILSCALE_IP]:11434` |
 | MCP | `ws://[DGX_TAILSCALE_IP]:8765` |
-| Acceptance gate | `bash ~/hermes-cfo/scripts/test-tool-enforcement.sh` |
+| Acceptance gate | `bash ~/hanshermesagent/scripts/test-tool-enforcement.sh` |
 | Deploy | `systemctl --user restart hermes-gateway.service` |
 | Logs | `journalctl --user -u hermes-gateway.service -f` |
 

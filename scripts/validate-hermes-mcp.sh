@@ -8,9 +8,9 @@ PORT="${HVE_MCP_PORT:-8765}"
 ENV_FILE="${HOME}/.hermes-mcp.env"
 ACTIVE_PROFILE="$(cat "${HOME}/.hermes/active_profile" 2>/dev/null || echo default)"
 CONFIG_FILE="${HOME}/.hermes/profiles/${ACTIVE_PROFILE}/config.yaml"
-SKILLS_DIR="${HOME}/hermes-cfo/skills/hve"
+SKILLS_DIR="${HOME}/hanshermesagent/skills/hve"
 KNOWLEDGE_PYTHON="${HOME}/.hve-knowledge/venv/bin/python3"
-KNOWLEDGE_SEARCH_SCRIPT="${HOME}/hermes-cfo/mcp/tools/knowledge/search.py"
+KNOWLEDGE_SEARCH_SCRIPT="${HOME}/hanshermesagent/mcp/tools/knowledge/search.py"
 PASS=0
 FAIL=0
 
@@ -101,7 +101,7 @@ else
     check "Mempool tools registered" "missing ${missing_tools[*]}"
 fi
 
-check "skills external_dirs configured" "$(grep -q '/home/hans/hermes-cfo/skills/hve' "${CONFIG_FILE}" 2>/dev/null && echo ok || echo "skills/hve not configured in ${CONFIG_FILE}")"
+check "skills external_dirs configured" "$(grep -q '/home/hans/hanshermesagent/skills/hve' "${CONFIG_FILE}" 2>/dev/null && echo ok || echo "skills/hve not configured in ${CONFIG_FILE}")"
 check "native skills directory exists" "$([ -d "${SKILLS_DIR}" ] && echo ok || echo "missing ${SKILLS_DIR}")"
 skill_count=$(find "${SKILLS_DIR}" -mindepth 2 -maxdepth 2 -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
 check "native HVE skill files present" "$([ "${skill_count}" = "5" ] && echo ok || echo "expected 5, got ${skill_count}")"
@@ -118,7 +118,7 @@ check "GitHub tool: comment_github_issue" "$(echo "${mcp_resp}" | grep -q 'comme
 check "GitHub tool: list_github_issues" "$(echo "${mcp_resp}" | grep -q 'list_github_issues' && echo ok || echo "tool not registered")"
 
 # tasks file
-TASKS_FILE="${HOME}/hermes-cfo/logs/tasks/tasks.json"
+TASKS_FILE="${HOME}/hanshermesagent/logs/tasks/tasks.json"
 check "tasks file exists" "$([ -f "${TASKS_FILE}" ] && echo ok || echo "missing ${TASKS_FILE}")"
 
 echo ""

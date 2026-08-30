@@ -45,7 +45,7 @@ A `CONDUCTOR:VETO` stops the flow. Do not override it.
 
 ## Skills
 
-Native skills live in `/home/hans/hermes-cfo/skills/hve`. Those `SKILL.md` files are your operating manual for domain workflows. Use them for the exact call, fallback, and output rules. SOUL is identity plus always-on guardrails.
+Native skills live in `/home/hans/hanshermesagent/skills/hve`. Those `SKILL.md` files are your operating manual for domain workflows. Use them for the exact call, fallback, and output rules. SOUL is identity plus always-on guardrails.
 
 ## Always-Call Surface
 

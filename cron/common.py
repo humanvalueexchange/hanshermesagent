@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
-REPO_DIR = Path.home() / "hermes-cfo"
+REPO_DIR = Path.home() / "hanshermesagent"
 BRIEFINGS_DIR = REPO_DIR / "logs" / "briefings"
 HERMES_ROOT = Path.home() / ".hermes"
 MAIN_PROFILE = HERMES_ROOT / "profiles" / "main"

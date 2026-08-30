@@ -1,13 +1,13 @@
 [Unit]
 Description=Hermes Telegram Live Log Watcher
-Documentation=https://github.com/humanvalueexchange/hermes-cfo
+Documentation=https://github.com/humanvalueexchange/hanshermesagent
 
 Wants=hermes-gateway.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /home/hans/hermes-cfo/scripts/telegram-live-log.py
-WorkingDirectory=/home/hans/hermes-cfo
+ExecStart=/usr/bin/python3 /home/hans/hanshermesagent/scripts/telegram-live-log.py
+WorkingDirectory=/home/hans/hanshermesagent
 Restart=always
 RestartSec=5
 StandardOutput=journal

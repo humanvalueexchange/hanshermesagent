@@ -419,7 +419,7 @@ sessions:
 skills:
   creation_nudge_interval: 15
   external_dirs:
-  - /home/hans/hermes-cfo/skills/hve
+  - /home/hans/hanshermesagent/skills/hve
   guard_agent_created: false
   inline_shell: false
   inline_shell_timeout: 10

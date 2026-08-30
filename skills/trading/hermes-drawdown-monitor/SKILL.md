@@ -9,7 +9,7 @@ date: 2026-05-11
 # hermes-drawdown-monitor — Drawdown Guardrail
 
 ## When to Invoke
-- **Before every trade cycle** — run `python3 ~/hermes-cfo/tools/drawdown_monitor.py check` before research, critic, or execution.
+- **Before every trade cycle** — run `python3 ~/hanshermesagent/tools/drawdown_monitor.py check` before research, critic, or execution.
 - Any time Hermes needs current equity, open BTC positions, or halt-state confirmation.
 - During incident response if trading should already be stopped.
 
@@ -23,7 +23,7 @@ date: 2026-05-11
 ## Required Actions
 1. Run:
    ```bash
-   python3 ~/hermes-cfo/tools/drawdown_monitor.py check
+   python3 ~/hanshermesagent/tools/drawdown_monitor.py check
    ```
 2. If exit code is `0` and `halt_active` is `false`, continue the trade cycle.
 3. If exit code is `1` or a soft-halt breaker fires:

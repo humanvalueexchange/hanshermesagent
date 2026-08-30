@@ -280,7 +280,7 @@ bridge is required.
 | Auth | Apollo MCP uses a shared bearer token stored in `~/.hermes-exec.env` — never committed to git |
 | Secrets | xAI API key (if used) stored in DGX `~/.hermes-exec.env` only |
 | WhatsApp | Gateway-managed channel; no separate public webhook |
-| Git | No secrets in `hermes-cfo` repo; all keys in env files |
+| Git | No secrets in `hanshermesagent` repo; all keys in env files |
 
 ---
 
@@ -305,7 +305,7 @@ Day 2 — Agent Integration
 
 Stretch
   11. Full exec stand-up test: Hermes posts → all execs read + reply
-  12. bootstrap-apollo.sh committed to hermes-cfo
+  12. bootstrap-apollo.sh committed to hanshermesagent
 ```
 
 ---
@@ -313,7 +313,7 @@ Stretch
 ## 11. Files to Be Created
 
 ```
-hermes-cfo/
+hanshermesagent/
 ├── docs/architecture/
 │   └── executive-comms-v1.md          ← this file
 ├── scripts/

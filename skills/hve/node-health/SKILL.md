@@ -24,7 +24,7 @@ date: 2026-05-30
 If `get_node_diagnostic` is unavailable, run:
 
 ```bash
-bash ~/hermes-cfo/scripts/hermes-diagnostic.sh
+bash ~/hanshermesagent/scripts/hermes-diagnostic.sh
 ```
 
 If both fail, say: `Diagnostic unavailable — MCP tool and hermes-diagnostic.sh both failed. Cannot provide system status.`

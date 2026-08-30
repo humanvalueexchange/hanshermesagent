@@ -18,7 +18,7 @@ The `patches/` convention (recording deployed diffs as `.patch` files) has been
 
 | Layer | Tool | Where |
 |---|---|---|
-| Code changes | `git log` / `git diff` | `humanvalueexchange/hermes-cfo` repo |
+| Code changes | `git log` / `git diff` | `humanvalueexchange/hanshermesagent` repo |
 | Decision record | GitHub Issues + ADRs | `docs/adr/` |
 | Live deploy diff | `scripts/hermes-deploy.sh --dry-run` | Run before any deploy |
 | Config snapshots | Timeshift (daily) | DGX Spark NVMe |

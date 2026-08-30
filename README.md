@@ -7,7 +7,7 @@ service stack.
 
 **Runtime:** DGX OS / Ubuntu 24.04-based, ARM64, 128 GB unified memory
 **Primary gateway:** `hanshermesagent` Telegram channel
-**Repository:** `humanvalueexchange/hermes-cfo`
+**Repository:** `humanvalueexchange/hanshermesagent`
 
 ## Current model configuration
 
@@ -57,7 +57,7 @@ outside Git:
 ~/.config/systemd/user/
 ```
 
-`/home/hans/hermes-cfo` is the canonical deployment source. Do not edit live
+`/home/hans/hanshermesagent` is the canonical deployment source. Do not edit live
 profile files or user units directly. The deployment gate requires a clean,
 reviewed worktree, synchronizes managed units, and runs:
 
@@ -149,7 +149,7 @@ human-auditable knowledge.
 ## Repository structure
 
 ```text
-hermes-cfo/
+hanshermesagent/
 ├── config/                    Runtime and knowledge-layer configuration
 ├── cron/                      Scheduled CFO and briefing jobs
 ├── dotfiles/                  Deployable systemd units, hooks, and templates

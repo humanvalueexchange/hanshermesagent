@@ -23,7 +23,7 @@ Calls `src/tools/position_validator.py` to validate the proposed Kraken BTC/USD 
 
 ## Invocation
 ```bash
-python3 ~/hermes-cfo/tools/position_validator.py \
+python3 ~/hanshermesagent/tools/position_validator.py \
   --side long \
   --entry 82000 \
   --stop 81180 \
@@ -35,7 +35,7 @@ python3 ~/hermes-cfo/tools/position_validator.py \
 JSON stdin is also supported:
 ```bash
 echo '{"side":"long","entry":82000,"stop":81180,"target":83640,"size_usd":100,"account_equity":1000}' \
-  | python3 ~/hermes-cfo/tools/position_validator.py
+  | python3 ~/hanshermesagent/tools/position_validator.py
 ```
 
 ## Output Handling
@@ -45,7 +45,7 @@ echo '{"side":"long","entry":82000,"stop":81180,"target":83640,"size_usd":100,"a
 
 ## Realistic BTC Example
 ```bash
-python3 ~/hermes-cfo/tools/position_validator.py \
+python3 ~/hanshermesagent/tools/position_validator.py \
   --side long \
   --entry 82000 \
   --stop 81180 \

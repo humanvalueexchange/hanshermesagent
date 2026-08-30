@@ -34,7 +34,7 @@ class GitHubIssueToolTests(unittest.TestCase):
         ):
             result = github_issues.read_github_issue(54)
 
-        self.assertIn("## hermes-cfo#54: RFC: Knowledge Architecture", result)
+        self.assertIn("## hanshermesagent#54: RFC: Knowledge Architecture", result)
         self.assertIn("Labels: architecture, rfc", result)
         self.assertIn("Issue body text", result)
         self.assertIn("### Comments (1)", result)
@@ -43,11 +43,11 @@ class GitHubIssueToolTests(unittest.TestCase):
     def test_comment_github_issue_appends_signature_when_missing(self) -> None:
         with mock.patch("tools.github_issues._load_github_token", return_value="token"), mock.patch(
             "tools.github_issues._request_github_json",
-            return_value={"html_url": "https://github.com/humanvalueexchange/hermes-cfo/issues/54#issuecomment-1"},
+            return_value={"html_url": "https://github.com/humanvalueexchange/hanshermesagent/issues/54#issuecomment-1"},
         ) as request:
             result = github_issues.comment_github_issue(54, "Operational review")
 
-        self.assertIn("✅ Comment posted on hermes-cfo#54", result)
+        self.assertIn("✅ Comment posted on hanshermesagent#54", result)
         self.assertEqual(request.call_args.kwargs["method"], "POST")
         self.assertIn("Posted by Hermes", request.call_args.kwargs["payload"]["body"])
 
@@ -64,7 +64,7 @@ class GitHubIssueToolTests(unittest.TestCase):
         ):
             result = github_issues.list_github_issues(limit=20)
 
-        self.assertIn("## hermes-cfo — Open Issues (2 returned)", result)
+        self.assertIn("## hanshermesagent — Open Issues (2 returned)", result)
         self.assertIn("- #54: RFC [architecture]", result)
         self.assertIn("- #56: Feature", result)
         self.assertNotIn("#55", result)
@@ -72,11 +72,11 @@ class GitHubIssueToolTests(unittest.TestCase):
     def test_invalid_repo_and_state_return_errors(self) -> None:
         self.assertEqual(
             github_issues.read_github_issue(1, repo="bad-repo"),
-            "ERROR: repo must be 'hermes-cfo' or 'mercury'",
+            "ERROR: repo must be 'hanshermesagent' or 'mercury'",
         )
         self.assertEqual(
             github_issues.comment_github_issue(1, "text", repo="bad-repo"),
-            "ERROR: repo must be 'hermes-cfo' or 'mercury'",
+            "ERROR: repo must be 'hanshermesagent' or 'mercury'",
         )
         self.assertEqual(
             github_issues.list_github_issues(state="bad-state"),

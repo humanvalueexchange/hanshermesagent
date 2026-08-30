@@ -83,7 +83,7 @@ notify_telegram() {
 # ── 5. Decide: warn or auto-upgrade ──────────────────────────────────────────
 if [ "$DAYS_BEHIND" -lt "$NOTIFY_DAYS_WARN" ]; then
   # Fresh release — notify only, let team review release notes first
-  notify_telegram "📦 Hermes update available: v$INSTALLED → v$LATEST (released $LATEST_DATE). Review release notes before upgrading. Run: bash ~/hermes-cfo/scripts/hermes-update.sh --upgrade"
+  notify_telegram "📦 Hermes update available: v$INSTALLED → v$LATEST (released $LATEST_DATE). Review release notes before upgrading. Run: bash ~/hanshermesagent/scripts/hermes-update.sh --upgrade"
   log "Notified — within $NOTIFY_DAYS_WARN day review window, not auto-upgrading"
   exit 0
 fi
@@ -91,7 +91,7 @@ fi
 # Auto-upgrade path (>= NOTIFY_DAYS_WARN days behind, or --upgrade flag)
 FORCE_UPGRADE="${1:-}"
 if [ "$DAYS_BEHIND" -lt "$NOTIFY_DAYS_AUTO" ] && [ "$FORCE_UPGRADE" != "--upgrade" ]; then
-  notify_telegram "📦 Hermes update: v$INSTALLED → v$LATEST is ${DAYS_BEHIND}d old. Auto-upgrade in $((NOTIFY_DAYS_AUTO - DAYS_BEHIND))d or run: bash ~/hermes-cfo/scripts/hermes-update.sh --upgrade"
+  notify_telegram "📦 Hermes update: v$INSTALLED → v$LATEST is ${DAYS_BEHIND}d old. Auto-upgrade in $((NOTIFY_DAYS_AUTO - DAYS_BEHIND))d or run: bash ~/hanshermesagent/scripts/hermes-update.sh --upgrade"
   log "Notified — not yet at auto-upgrade threshold ($NOTIFY_DAYS_AUTO days)"
   exit 0
 fi
@@ -157,7 +157,7 @@ else
   exit 1
 fi
 
-# Pull updated hermes-cfo scripts
-cd ~/hermes-cfo && git pull --rebase --quiet 2>/dev/null || true
+# Pull updated hanshermesagent scripts
+cd ~/hanshermesagent && git pull --rebase --quiet 2>/dev/null || true
 
 log "Update complete: $INSTALLED → $NEW_VERSION"

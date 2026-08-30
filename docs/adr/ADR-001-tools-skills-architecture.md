@@ -92,7 +92,7 @@ SOUL.md remains the always-loaded identity and guardrail document:
 ## File Structure (current target state)
 
 ```
-humanvalueexchange/hermes-cfo/
+humanvalueexchange/hanshermesagent/
 ├── mcp/
 │   ├── server.py                    # FastMCP server — registers atomic tools
 │   └── tools/

@@ -1,12 +1,12 @@
 [Unit]
 Description=Hermes Model Preload — keeps the approved local Ollama stack hot
-Documentation=https://github.com/humanvalueexchange/hermes-cfo
+Documentation=https://github.com/humanvalueexchange/hanshermesagent
 After=network-online.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/bash %h/hermes-cfo/scripts/hermes-preload-models.sh
+ExecStart=/bin/bash %h/hanshermesagent/scripts/hermes-preload-models.sh
 StandardOutput=journal
 StandardError=journal
 TimeoutStartSec=300

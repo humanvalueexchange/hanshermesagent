@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# hermes-deploy.sh — Deploy config/SOUL changes from hermes-cfo to live Hermes runtime
+# hermes-deploy.sh — Deploy config/SOUL changes from hanshermesagent to live Hermes runtime
 # Safe to run at any time — idempotent. No service restart unless changes detected.
 set -euo pipefail
 
@@ -22,7 +22,7 @@ if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
   echo "ERROR: repository worktree is dirty. Commit or discard changes before deployment."
   exit 1
 fi
-echo "→ Pulling latest from hermes-cfo repo..."
+echo "→ Pulling latest from hanshermesagent repo..."
 cd "$REPO_ROOT"
 OLD_HEAD=$(git rev-parse HEAD)
 git pull --rebase origin main

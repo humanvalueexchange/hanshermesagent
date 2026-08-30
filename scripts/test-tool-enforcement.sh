@@ -26,7 +26,7 @@ info() { echo -e "${BLUE}→${NC} $1"; }
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║   Hermes CFO — Tool Enforcement Verification                 ║"
-echo "║   Issue #2 — humanvalueexchange/hermes-cfo                   ║"
+echo "║   Issue #2 — humanvalueexchange/hanshermesagent              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo "  Ollama: $OLLAMA_HOST"
 echo "  Time:   $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
@@ -211,7 +211,7 @@ echo "╚═══════════════════════�
 echo ""
 
 if [ $FAIL -gt 0 ]; then
-  echo "❌ $FAIL test(s) failed. File a child issue on hermes-cfo#2 with the output above."
+  echo "❌ $FAIL test(s) failed. File a child issue on hanshermesagent#2 with the output above."
   echo "   Assign to: Claude (CTO) for architecture review"
   exit 1
 else

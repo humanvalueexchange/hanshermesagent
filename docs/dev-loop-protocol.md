@@ -71,7 +71,7 @@ DGX Spark access details are shared privately by Hans. You need:
 ### Pre-flight check
 Before any implementation session, run the connectivity check:
 ```bash
-bash ~/hermes-cfo/scripts/test-vulcan-connectivity.sh
+bash ~/hanshermesagent/scripts/test-vulcan-connectivity.sh
 ```
 All checks should pass before you touch any code.
 
@@ -79,7 +79,7 @@ All checks should pass before you touch any code.
 ```
 ~/.hermes/hermes-agent/    ← hermes-agent source (editable install)
 ~/.hermes/profiles/<active-profile>/   ← live config, SOUL.md, .env
-~/hermes-cfo/              ← this repo (cloned on DGX Spark)
+~/hanshermesagent/              ← this repo (cloned on DGX Spark)
 ```
 
 ### After any change to hermes-agent
@@ -91,7 +91,7 @@ journalctl --user -u hermes-gateway.service -f   # confirm clean start
 ### PR convention
 Branch: `fix/issue-N-short-description`  
 Title: `fix: [description] (#N)`  
-Target: `main` on `humanvalueexchange/hermes-cfo`
+Target: `main` on `humanvalueexchange/hanshermesagent`
 
 ---
 
@@ -103,7 +103,7 @@ DGX Spark access details are shared privately by Hans.
 ### The acceptance gate
 Every issue that touches hermes-agent must pass this before merge:
 ```bash
-ssh hans@[DGX_TAILSCALE_IP] "bash ~/hermes-cfo/scripts/test-tool-enforcement.sh"
+ssh hans@[DGX_TAILSCALE_IP] "bash ~/hanshermesagent/scripts/test-tool-enforcement.sh"
 ```
 Expected result: **9/9 passed**. Any failure blocks merge.
 
@@ -145,10 +145,10 @@ Run 5: PASS/FAIL — [reason]
 
 | Issue | Title | Status | Blocked by |
 |---|---|---|---|
-| [#2](https://github.com/humanvalueexchange/hermes-cfo/issues/2) | Fix tool_use_enforcement — force real tool calls | 🔴 In progress | — |
-| [#3](https://github.com/humanvalueexchange/hermes-cfo/issues/3) | Nightly self-diagnostic report | ⏳ Waiting | #2 |
-| [#4](https://github.com/humanvalueexchange/hermes-cfo/issues/4) | Mercury → Hermes daily revenue feed | ⏳ Waiting | #2 |
-| [#8](https://github.com/humanvalueexchange/hermes-cfo/issues/8) | CFO morning brief | ⏳ Waiting | #2, #4 |
+| [#2](https://github.com/humanvalueexchange/hanshermesagent/issues/2) | Fix tool_use_enforcement — force real tool calls | 🔴 In progress | — |
+| [#3](https://github.com/humanvalueexchange/hanshermesagent/issues/3) | Nightly self-diagnostic report | ⏳ Waiting | #2 |
+| [#4](https://github.com/humanvalueexchange/hanshermesagent/issues/4) | Mercury → Hermes daily revenue feed | ⏳ Waiting | #2 |
+| [#8](https://github.com/humanvalueexchange/hanshermesagent/issues/8) | CFO morning brief | ⏳ Waiting | #2, #4 |
 
 **Start with Issue #2.** Everything else unblocks after it merges.
 

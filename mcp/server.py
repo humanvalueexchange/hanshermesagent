@@ -51,7 +51,7 @@ from tools.mempool.tools import (  # noqa: E402
 )
 
 # ── paths ────────────────────────────────────────────────────────────────────
-REPO_DIR = Path.home() / "hermes-cfo"
+REPO_DIR = Path.home() / "hanshermesagent"
 BRIEFINGS_DIR = REPO_DIR / "logs" / "briefings"
 TASKS_FILE = REPO_DIR / "logs" / "tasks" / "tasks.json"
 OLLAMA_API = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
@@ -284,7 +284,7 @@ def create_task(
     """
     Create a follow-up task in the HVE task queue.
 
-    Tasks are stored in hermes-cfo/logs/tasks/tasks.json and surfaced
+    Tasks are stored in hanshermesagent/logs/tasks/tasks.json and surfaced
     in the morning briefing and client context.
 
     Args:
@@ -401,7 +401,7 @@ def get_node_diagnostic() -> str:
 
 
 @mcp.tool()
-def vote_backlog_issue(issue_number: int, score: int, reason: str = "", repo: str = "hermes-cfo") -> str:
+def vote_backlog_issue(issue_number: int, score: int, reason: str = "", repo: str = "hanshermesagent") -> str:
     """
     Vote on a backlog issue with a score from 1 to 10.
 
@@ -412,7 +412,7 @@ def vote_backlog_issue(issue_number: int, score: int, reason: str = "", repo: st
         issue_number: GitHub issue number to vote on (e.g. 24)
         score:        Integer score 1-10 (10 = highest priority)
         reason:       Optional brief reason for your score
-        repo:         Target repo — "hermes-cfo" (default) or "mercury"
+        repo:         Target repo — "hanshermesagent" (default) or "mercury"
 
     Returns confirmation with the comment URL, or an error message.
     """
@@ -422,8 +422,8 @@ def vote_backlog_issue(issue_number: int, score: int, reason: str = "", repo: st
     if not 1 <= score <= 10:
         return "ERROR: score must be between 1 and 10"
 
-    if repo not in ("hermes-cfo", "mercury"):
-        return "ERROR: repo must be 'hermes-cfo' or 'mercury'"
+    if repo not in ("hanshermesagent", "mercury"):
+        return "ERROR: repo must be 'hanshermesagent' or 'mercury'"
 
     token = None
     env_file = os.path.expanduser("~/.hermes/.env")
@@ -458,7 +458,7 @@ def vote_backlog_issue(issue_number: int, score: int, reason: str = "", repo: st
 
 
 @mcp.tool()
-def suggest_backlog_issue(title: str, hypothesis: str = "", context: str = "", direction: str = "", risks: str = "", repo: str = "hermes-cfo") -> str:
+def suggest_backlog_issue(title: str, hypothesis: str = "", context: str = "", direction: str = "", risks: str = "", repo: str = "hanshermesagent") -> str:
     """
     Post a research idea as a GitHub Issue to a HVE team backlog.
 
@@ -472,15 +472,15 @@ def suggest_backlog_issue(title: str, hypothesis: str = "", context: str = "", d
         context:    Why this matters for HVE treasury or operations
         direction:  Proposed implementation approach
         risks:      Unknowns, risks, or open questions
-        repo:       Target repo — "hermes-cfo" (default) or "mercury"
+        repo:       Target repo — "hanshermesagent" (default) or "mercury"
 
     Returns confirmation with the issue URL, or an error message.
     """
     import json as _json
     import urllib.request as _ur
 
-    if repo not in ("hermes-cfo", "mercury"):
-        return "ERROR: repo must be 'hermes-cfo' or 'mercury'"
+    if repo not in ("hanshermesagent", "mercury"):
+        return "ERROR: repo must be 'hanshermesagent' or 'mercury'"
 
     # Load token from env file
     token = None
@@ -527,7 +527,7 @@ def suggest_backlog_issue(title: str, hypothesis: str = "", context: str = "", d
 
 
 @mcp.tool()
-def read_github_issue(issue_number: int, repo: str = "hermes-cfo") -> str:
+def read_github_issue(issue_number: int, repo: str = "hanshermesagent") -> str:
     """
     Read a GitHub issue including its body and all comments.
 
@@ -538,7 +538,7 @@ def read_github_issue(issue_number: int, repo: str = "hermes-cfo") -> str:
 
 
 @mcp.tool()
-def comment_github_issue(issue_number: int, comment_body: str, repo: str = "hermes-cfo") -> str:
+def comment_github_issue(issue_number: int, comment_body: str, repo: str = "hanshermesagent") -> str:
     """
     Post a comment on a GitHub issue.
 
@@ -549,7 +549,7 @@ def comment_github_issue(issue_number: int, comment_body: str, repo: str = "herm
 
 
 @mcp.tool()
-def list_github_issues(repo: str = "hermes-cfo", state: str = "open", label: str = "", limit: int = 20) -> str:
+def list_github_issues(repo: str = "hanshermesagent", state: str = "open", label: str = "", limit: int = 20) -> str:
     """
     List GitHub issues from a HVE repo.
 

@@ -1,6 +1,6 @@
 # Hermes Nightly Self-Evolution Prompt
 
-**Instructions for Hans:** This is now a legacy manual bootstrap prompt. Preferred approach: install the repo-managed Hermes cron stack with `bash ~/hermes-cfo/scripts/bootstrap-hermes-cron.sh`.
+**Instructions for Hans:** This is now a legacy manual bootstrap prompt. Preferred approach: install the repo-managed Hermes cron stack with `bash ~/hanshermesagent/scripts/bootstrap-hermes-cron.sh`.
 
 ---
 
@@ -19,7 +19,7 @@ Before anything else, harvest today's Telegram conversations and write a daily d
       Extract every message and response from Telegram platform sessions only.
 
   0b. Write a digest file to:
-        ~/hermes-cfo/logs/cto-review/{YYYY-MM-DD}.md
+        ~/hanshermesagent/logs/cto-review/{YYYY-MM-DD}.md
       using today's date. The file must follow this exact structure:
 
         # CTO Review — {YYYY-MM-DD}
@@ -49,7 +49,7 @@ Before anything else, harvest today's Telegram conversations and write a daily d
         Telegram sessions: {N}
 
   0c. Commit the digest to GitHub:
-        cd ~/hermes-cfo
+        cd ~/hanshermesagent
         git add logs/cto-review/{YYYY-MM-DD}.md
         git commit -m "log(cto-review): daily digest {YYYY-MM-DD}
 
@@ -88,7 +88,7 @@ Write the file to:
 Step 3 — COMMIT TO GITHUB
 After writing the skill file, execute these terminal commands:
 
-  cd ~/hermes-cfo
+  cd ~/hanshermesagent
   cp ~/.hermes/profiles/<active-profile>/skills/{category}/{skill-name}/SKILL.md dotfiles/skills/{category}/{skill-name}/SKILL.md
   git add dotfiles/skills/
   git commit -m "skill(nightly): add {skill-name} — {one line description}
@@ -104,7 +104,7 @@ Write a "What I Learned Last Night" briefing document and send it to Hans via Te
 🌙 HERMES MORNING BRIEFING — {TODAY'S DATE}
 
 📋 TODAY'S CONVERSATION DIGEST:
-Committed to hermes-cfo → logs/cto-review/{YYYY-MM-DD}.md
+Committed to hanshermesagent → logs/cto-review/{YYYY-MM-DD}.md
 Flags for CTO: {count} item(s) — {one-line summary of most important flag, or "none"}
 
 📚 SKILL ADDED: {skill-name}
@@ -118,7 +118,7 @@ Why I chose it: {1-2 sentences — what gap it fills}
 {exact trigger phrase Hans can use to activate this skill}
 
 🔗 COMMITTED TO GITHUB:
-hermes-cfo → dotfiles/skills/{category}/{skill-name}/SKILL.md
+hanshermesagent → dotfiles/skills/{category}/{skill-name}/SKILL.md
 
 📊 CFO IMPACT:
 {one sentence on how this improves treasury/trading operations}
@@ -155,14 +155,14 @@ Once Hermes receives this prompt, he will:
    - **Step 4** — send morning briefing to Hans via Telegram (includes digest summary + new skill)
    - **Step 5** — append to evolution log
 3. Hans wakes up to a Telegram message covering both what was discussed and what Hermes learned
-4. CTO reads `hermes-cfo/logs/cto-review/YYYY-MM-DD.md` at the start of each session for full context
+4. CTO reads `hanshermesagent/logs/cto-review/YYYY-MM-DD.md` at the start of each session for full context
 
 ## CTO Review Workflow
 
 Each morning after reading the briefing:
-- Read `hermes-cfo/logs/cto-review/YYYY-MM-DD.md` for full conversation context
+- Read `hanshermesagent/logs/cto-review/YYYY-MM-DD.md` for full conversation context
 - Check **Flags for CTO** section — act on anything flagged
-- Check `hermes-cfo/dotfiles/skills/` for Hermes's new skill commit
+- Check `hanshermesagent/dotfiles/skills/` for Hermes's new skill commit
 - If the skill requires actual code/dependencies, build it during the session
 
 Skills Hermes writes are **SKILL.md knowledge documents** (instructions to himself).
@@ -184,10 +184,10 @@ cat ~/.hermes/profiles/<active-profile>/evolution.log
 
 All daily digests are version-controlled at:
 ```
-hermes-cfo/logs/cto-review/YYYY-MM-DD.md
+hanshermesagent/logs/cto-review/YYYY-MM-DD.md
 ```
 
 Read the last 7 days:
 ```bash
-ls -lt ~/hermes-cfo/logs/cto-review/*.md | head -7
+ls -lt ~/hanshermesagent/logs/cto-review/*.md | head -7
 ```

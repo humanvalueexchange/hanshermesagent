@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # hermes-install.sh — Bootstrap Hermes CFO on a fresh DGX Spark
 # Part of the bare-metal restore sequence (Phase 3 post-Timeshift)
-# Run from: ~/hermes-cfo/scripts/hermes-install.sh
+# Run from: ~/hanshermesagent/scripts/hermes-install.sh
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

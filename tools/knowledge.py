@@ -9,7 +9,7 @@ RunCommand = Callable[[list[str], int], tuple[int, str]]
 HVE_LIBRARY_ROOT = Path("/hve-library")
 PROCESSED_TEXT_DIR = HVE_LIBRARY_ROOT / "processed" / "text"
 KNOWLEDGE_VENV_PYTHON = Path.home() / ".hve-knowledge" / "venv" / "bin" / "python3"
-KNOWLEDGE_SEARCH_SCRIPT = Path.home() / "hermes-cfo" / "mcp" / "tools" / "knowledge" / "search.py"
+KNOWLEDGE_SEARCH_SCRIPT = Path.home() / "hanshermesagent" / "mcp" / "tools" / "knowledge" / "search.py"
 MAX_RESULTS = 20
 SEMANTIC_SEARCH_TIMEOUT = 120
 

@@ -12,7 +12,7 @@ from typing import Iterable
 import yaml
 
 
-CONFIG_PATH = Path.home() / "hermes-cfo" / "config" / "knowledge-layer" / "knowledge-layer.yaml"
+CONFIG_PATH = Path.home() / "hanshermesagent" / "config" / "knowledge-layer" / "knowledge-layer.yaml"
 
 
 def now_iso() -> str:

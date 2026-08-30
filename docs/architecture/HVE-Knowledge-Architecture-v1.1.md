@@ -605,7 +605,7 @@ All six open questions from v1.0 are resolved by team consensus:
 
 ```bash
 # Step 1: Pull and restart MCP server
-cd ~/hermes-cfo && git pull origin main
+cd ~/hanshermesagent && git pull origin main
 systemctl --user restart hermes-mcp
 
 # Step 2: Add tool to gateway allowlist

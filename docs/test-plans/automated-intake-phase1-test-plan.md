@@ -68,7 +68,7 @@ Current baseline (as of 2026-05-31):
 - Telegram access for 5× live validation (strict raw-output protocol).
 
 **Repo vs Live Note:** The canonical control-plane path is
-`/home/hans/hermes-cfo/knowledge/layer/`; tests must verify deployed services
+`/home/hans/hanshermesagent/knowledge/layer/`; tests must verify deployed services
 use this path.
 
 ---
@@ -188,7 +188,7 @@ When Vulcan declares ready:
 - Embedding model (nomic) behavior on freshly ingested vs. overnight-indexed content — any freshness or calibration difference?
 - Path unit + timer coexistence: ensure no double-processing.
 - Notification hygiene: must not re-introduce the meta-narrative / over-reporting problems we blocked on in #44.
-- Repo drift between deployed services and the canonical hermes-cfo control-plane
+- Repo drift between deployed services and the canonical hanshermesagent control-plane
   paths must be resolved before claiming production readiness.
 - No redaction path yet (Phase 2 concern) — note that a bad ingest today has no clean "remove this document" yet.
 

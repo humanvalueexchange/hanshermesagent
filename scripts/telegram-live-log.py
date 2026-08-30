@@ -2,9 +2,9 @@
 """
 Hermes Telegram Live Log Watcher
 Polls ~/.hermes/state.db for new Telegram messages and appends them to
-~/hermes-cfo/logs/telegram/live.log in real time.
+~/hanshermesagent/logs/telegram/live.log in real time.
 
-Run: python3 ~/hermes-cfo/scripts/telegram-live-log.py
+Run: python3 ~/hanshermesagent/scripts/telegram-live-log.py
 Or via systemd: systemctl --user start hermes-telegram-log
 """
 
@@ -16,7 +16,7 @@ import sys
 import signal
 
 STATE_DB = os.path.expanduser("~/.hermes/state.db")
-LOG_FILE = os.path.expanduser("~/hermes-cfo/logs/telegram/live.log")
+LOG_FILE = os.path.expanduser("~/hanshermesagent/logs/telegram/live.log")
 POLL_INTERVAL = 3  # seconds
 WATERMARK_FILE = os.path.expanduser("~/.hermes/telegram_log_watermark")
 
