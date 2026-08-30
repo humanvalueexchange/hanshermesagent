@@ -6,6 +6,7 @@ import fcntl
 import json
 import os
 import re
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,9 @@ from fastmcp import FastMCP
 
 LEDGER_PATH = Path(
     "/home/hans/.hermes/profiles/hanshermesagent/state/weekly-decision-log.jsonl"
+)
+MEMORY_DB_PATH = Path(
+    "/home/hans/.hermes/profiles/hanshermesagent/local-memory.db"
 )
 DECISION_ID_RE = re.compile(r"^D-\d{4}-\d{2}-\d{2}-\d{2,}$")
 EVENT_TYPES = {
@@ -133,6 +137,32 @@ def list_decision_events(
             if wanted_statuses and event.get("status") not in wanted_statuses:
                 continue
             results.append(event)
+    return results
+
+
+@mcp.tool()
+def list_ledger_handoff_candidates(limit: int = 50) -> list[dict[str, Any]]:
+    """Read SQLite decision/policy proposals awaiting Hans's confirmation."""
+    if not MEMORY_DB_PATH.is_file():
+        return []
+    with sqlite3.connect(MEMORY_DB_PATH) as db:
+        db.row_factory = sqlite3.Row
+        rows = db.execute(
+            """
+            SELECT handoff_id, report_id, job_id, source_id, candidate_index,
+                   candidate_json, decision_text, status, created_at, updated_at
+            FROM ledger_handoffs
+            WHERE status='pending_confirmation'
+            ORDER BY handoff_id
+            LIMIT ?
+            """,
+            (max(1, min(int(limit), 200)),),
+        ).fetchall()
+    results = []
+    for row in rows:
+        item = dict(row)
+        item["candidate"] = json.loads(item.pop("candidate_json"))
+        results.append(item)
     return results
 
 

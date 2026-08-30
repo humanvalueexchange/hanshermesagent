@@ -57,8 +57,9 @@ Persist the ledger as an append-only JSON Lines file at:
 
 `/home/hans/.hermes/profiles/hanshermesagent/state/weekly-decision-log.jsonl`
 
-For persistence, use the `append_decision_events` and
-`list_decision_events` tools from the `hve-decision-ledger` MCP server only.
+For persistence and handoff review, use the `append_decision_events`,
+`list_decision_events`, and `list_ledger_handoff_candidates` tools from the
+`hve-decision-ledger` MCP server only.
 Do not use `terminal`, shell commands, heredocs, `execute_code`, `read_file`,
 `write_file`, or another write path. Never create placeholder records.
 
@@ -150,6 +151,15 @@ and set `supersedes_decision_id`.
 If the ledger tool fails, report the exact failure and do not claim that the
 decision was recorded. Do not retry through `terminal`, `execute_code`, or a
 different filesystem path.
+
+### 6. Review SQLite handoff candidates
+
+Use `list_ledger_handoff_candidates` to retrieve validated SQLite
+decision/policy proposals awaiting Hans's confirmation. Present each proposal
+with its decision text, exact supporting quote, source identifiers, confidence,
+and missing owner/deadline fields. Do not append a ledger event until Hans
+explicitly confirms the proposed record through the configured direct-message
+channel.
 
 ## Review workflow
 

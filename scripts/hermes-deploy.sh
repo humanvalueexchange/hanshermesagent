@@ -10,6 +10,8 @@ HERMES_HOOKS=~/.hermes/agent-hooks
 ENV_FILE=~/.hermes-mcp.env
 GATEWAY_UNIT="${HERMES_GATEWAY_UNIT:-hermes-gateway-hanshermesagent.service}"
 SKILLS_DIR="$REPO_ROOT/skills/hve"
+MEMORY_PLUGIN_SOURCE="$REPO_ROOT/plugins/local-sqlite-memory"
+MEMORY_PLUGIN_DEST="$HERMES_PROFILE/plugins/local-sqlite-memory"
 DRIFT_CHECK="$REPO_ROOT/scripts/hermes-runtime-drift.sh"
 
 echo "╔══════════════════════════════════════════════════╗"
@@ -59,6 +61,22 @@ else
   RESTART_NEEDED=true
 fi
 rm -f "$NEW_CONFIG"
+
+# ── Profile-local memory plugin ───────────────────────────────────────────────
+if [ ! -d "$MEMORY_PLUGIN_SOURCE" ]; then
+  echo "ERROR: missing managed memory plugin at $MEMORY_PLUGIN_SOURCE"
+  exit 1
+fi
+mkdir -p "$MEMORY_PLUGIN_DEST"
+for plugin_file in __init__.py maintenance.py plugin.yaml store.py; do
+  source_file="$MEMORY_PLUGIN_SOURCE/$plugin_file"
+  destination_file="$MEMORY_PLUGIN_DEST/$plugin_file"
+  if ! diff -q "$source_file" "$destination_file" &>/dev/null 2>&1; then
+    cp "$source_file" "$destination_file"
+    echo "✅ local-sqlite-memory/$plugin_file updated"
+    RESTART_NEEDED=true
+  fi
+done
 
 # ── 5. SOUL.md diff ───────────────────────────────────────────────────────────
 if ! diff -q "$REPO_ROOT/dotfiles/SOUL.md" "$HERMES_PROFILE/SOUL.md" &>/dev/null 2>&1; then
