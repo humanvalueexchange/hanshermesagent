@@ -47,6 +47,7 @@ STALE_JOB_TIMEOUT = DOWNLOAD_TIMEOUT + 60
 NOTIFICATION_RETRY_INTERVAL = 30
 HERMES_BIN = Path("/home/hans/.hermes/hermes-agent/venv/bin/hermes")
 NOTIFICATION_PROFILE = "hve-librarian"
+NOTIFICATION_TARGET_ENV = "HVE_PROTON_NOTIFICATION_TARGET"
 CAPTURE_SOURCE = "hve_librarian"
 
 FILE_TYPES = {
@@ -129,12 +130,20 @@ def _sanitize_context(value: str | None) -> str | None:
 def _telegram_notification_target() -> tuple[str | None, str | None]:
     platform = os.environ.get("HERMES_SESSION_PLATFORM", "").strip().lower()
     chat_id = os.environ.get("HERMES_SESSION_CHAT_ID", "").strip()
-    if platform != "telegram" or not re.fullmatch(r"-?\d+", chat_id):
+    if platform == "telegram" and re.fullmatch(r"-?\d+", chat_id):
+        thread_id = os.environ.get("HERMES_SESSION_THREAD_ID", "").strip() or None
+        if thread_id is not None and not thread_id.isdigit():
+            thread_id = None
+        return chat_id, thread_id
+
+    # Persistent MCP subprocesses intentionally do not inherit per-turn
+    # session context. A deployment-scoped target is the safe fallback for
+    # the single HVE-Librarian Telegram channel.
+    configured = os.environ.get(NOTIFICATION_TARGET_ENV, "").strip()
+    match = re.fullmatch(r"telegram:(-?\d+)(?::(\d+))?", configured)
+    if not match:
         return None, None
-    thread_id = os.environ.get("HERMES_SESSION_THREAD_ID", "").strip() or None
-    if thread_id is not None and not thread_id.isdigit():
-        thread_id = None
-    return chat_id, thread_id
+    return match.group(1), match.group(2)
 
 
 def _safe_filename(name: str, file_type: str) -> str:

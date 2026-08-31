@@ -99,6 +99,47 @@ class ProtonFileCollectorTests(unittest.TestCase):
             self.assertEqual(job["notify_chat_id"], "1477642616")
             self.assertEqual(job["notification_status"], "pending")
 
+    def test_uses_validated_deployment_target_when_mcp_context_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "HVE_PROTON_NOTIFICATION_TARGET": "telegram:1477642616:42",
+                    "HERMES_SESSION_PLATFORM": "",
+                    "HERMES_SESSION_CHAT_ID": "",
+                    "HERMES_SESSION_THREAD_ID": "",
+                },
+                clear=False,
+            ):
+                result = archive_proton_file(
+                    "https://drive.proton.me/urls/example#key",
+                    root=root,
+                )
+
+            job = json.loads(Path(result["job_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(job["notify_platform"], "telegram")
+            self.assertEqual(job["notify_chat_id"], "1477642616")
+            self.assertEqual(job["notify_thread_id"], "42")
+            self.assertEqual(job["notify_target"], "telegram:1477642616:42")
+
+    def test_rejects_untrusted_deployment_notification_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            with mock.patch.dict(
+                "os.environ",
+                {"HVE_PROTON_NOTIFICATION_TARGET": "telegram:1477642616;rm"},
+                clear=False,
+            ):
+                result = archive_proton_file(
+                    "https://drive.proton.me/urls/example#key",
+                    root=root,
+                )
+
+            job = json.loads(Path(result["job_path"]).read_text(encoding="utf-8"))
+            self.assertIsNone(job["notify_platform"])
+            self.assertEqual(job["notification_status"], "pending")
+
     def test_notifies_telegram_only_after_manifest_is_indexed(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
