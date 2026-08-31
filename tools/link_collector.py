@@ -43,6 +43,7 @@ YOUTUBE_TRANSCRIPT_HELPER = Path(
     "/home/hans/.hermes/profiles/hanshermesagent/skills/media/youtube-content/scripts/fetch_transcript.py"
 )
 YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"}
+CAPTURE_SOURCE = "hve_librarian"
 TRACKING_PARAMETERS = {
     "fbclid",
     "gclid",
@@ -669,7 +670,7 @@ def _capture_event(requested_url: str, capture_context: str | None) -> dict[str,
         "captured_at": _now_iso(),
         "requested_url": requested_url,
         "capture_context": capture_context,
-        "capture_source": "telegram_collector",
+        "capture_source": CAPTURE_SOURCE,
     }
 
 
@@ -820,7 +821,7 @@ def archive_youtube(
         "source_type": "youtube_video",
         "video_id": video_id,
         "canonical_url": canonical_url,
-        "capture_source": "telegram_collector",
+        "capture_source": CAPTURE_SOURCE,
         "capture_context": context,
         "captured_at": capture["captured_at"],
         "source_archive_status": "completed",
@@ -1075,7 +1076,7 @@ def archive_link(
                 "source_path": requested_canonical,
                 "requested_url": requested_canonical,
                 "canonical_url": requested_canonical,
-                "capture_source": "telegram_collector",
+                "capture_source": CAPTURE_SOURCE,
                 "captured_at": captures[0]["captured_at"],
                 "captures": captures,
                 "capture_count": len(captures),
@@ -1178,7 +1179,7 @@ def archive_link(
             "canonical_url": final_canonical,
             "final_url": fetched.get("final_url"),
             "declared_canonical_url": extracted.get("declared_canonical_url"),
-            "capture_source": "telegram_collector",
+            "capture_source": CAPTURE_SOURCE,
             "capture_context": context,
             "captured_at": capture["captured_at"],
             "fetched_at": fetched_at,
@@ -1214,7 +1215,7 @@ def archive_link(
             "file_size_bytes": len(body),
             "discovered_at": capture["captured_at"],
             "captured_at": capture["captured_at"],
-            "capture_source": "telegram_collector",
+            "capture_source": CAPTURE_SOURCE,
             "captures": [*previous_captures, capture],
             "capture_count": len(previous_captures) + 1,
             "fetched_at": fetched_at,

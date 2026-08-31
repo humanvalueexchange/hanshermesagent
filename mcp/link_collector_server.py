@@ -14,14 +14,20 @@ if str(REPO_ROOT) not in sys.path:
 
 from tools.link_collector import archive_link as collect_link, archive_youtube as collect_youtube  # noqa: E402
 from tools.pdf_collector import archive_pdf as collect_pdf  # noqa: E402
+from tools.proton_file_collector import archive_proton_file as collect_proton_file  # noqa: E402
 
 
 mcp = FastMCP(
-    "HVE Telegram Link Collector",
+    "HVE-Librarian Knowledge Collector",
     instructions=(
             "This server exposes restricted tools for archiving public web links, "
-            "YouTube transcripts, and Telegram PDF attachments into the local HVE "
-            "knowledge library."
+            "YouTube transcripts, and approved PDF attachments into the local HVE "
+            "knowledge library, including Proton-hosted files. Preserve provenance "
+            "and do not modify originals. Proton results with status queued, "
+            "in_progress, already_queued, duplicate, or failed are terminal "
+            "responses; the agent must not retry them, even if the result is queued. "
+            "Call archive_proton_file at most once per user request. Preserve the "
+            "complete Proton URL, including its # access fragment."
     ),
 )
 
@@ -61,7 +67,7 @@ def archive_youtube(url: str, capture_context: str | None = None) -> dict:
 
 @mcp.tool()
 def archive_pdf(pdf_path: str, capture_context: str | None = None) -> dict:
-    """Archive one Telegram PDF attachment into the durable HVE knowledge library."""
+    """Archive one approved PDF attachment into the durable HVE knowledge library."""
     try:
         return collect_pdf(pdf_path, capture_context)
     except Exception as exc:
@@ -69,6 +75,22 @@ def archive_pdf(pdf_path: str, capture_context: str | None = None) -> dict:
             "status": "internal_error",
             "archived": False,
             "indexed": False,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+
+
+@mcp.tool()
+def archive_proton_file(url: str, capture_context: str | None = None) -> dict:
+    """Queue one approved Proton file for the local one-shot intake worker."""
+    try:
+        return collect_proton_file(url, capture_context)
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "archived": False,
+            "indexed": False,
+            "retryable": False,
+            "agent_action": "Do not call archive_proton_file again for this URL in this turn.",
             "error": f"{type(exc).__name__}: {exc}",
         }
 

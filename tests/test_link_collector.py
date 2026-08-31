@@ -131,7 +131,7 @@ class LinkCollectorTests(unittest.TestCase):
         self.assertFalse(result["indexed"])
         manifest = json.loads(Path(result["manifest_path"]).read_text(encoding="utf-8"))
         self.assertEqual(manifest["canonical_url"], "https://example.com/article")
-        self.assertEqual(manifest["capture_source"], "telegram_collector")
+        self.assertEqual(manifest["capture_source"], "hve_librarian")
         self.assertEqual(manifest["index_status"], "unavailable")
         self.assertTrue(Path(result["raw_html_path"]).is_file())
         self.assertTrue(Path(result["raw_metadata_path"]).is_file())
@@ -303,7 +303,7 @@ class LinkCollectorTests(unittest.TestCase):
                             {
                                 "captured_at": "2026-08-19T00:00:00+00:00",
                                 "capture_context": "first",
-                                "capture_source": "telegram_collector",
+                                "capture_source": "hve_librarian",
                             }
                         ],
                     }

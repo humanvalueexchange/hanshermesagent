@@ -14,11 +14,14 @@ from typing import Any
 KNOWLEDGE_ROOT = Path("/hve-library")
 INBOX_ROOT = KNOWLEDGE_ROOT / "intake" / "inbox"
 MANIFEST_ROOT = KNOWLEDGE_ROOT / "state" / "manifests"
-ALLOWED_ATTACHMENT_ROOT = Path.home() / ".hermes" / "profiles" / "hanshermesagent" / "cache" / "documents"
+HERMES_ROOT = Path.home() / ".hermes"
+LEGACY_ATTACHMENT_ROOT = HERMES_ROOT / "cache" / "documents"
+PROFILE_ROOT = HERMES_ROOT / "profiles"
 PIPELINE_SCRIPT = Path("/home/hans/hanshermesagent/knowledge/layer/run_intake_pipeline.py")
 PIPELINE_PYTHON = Path.home() / ".hve-knowledge" / "venv" / "bin" / "python3"
 MAX_PDF_BYTES = 30 * 1024 * 1024
 MAX_CONTEXT_LENGTH = 20_000
+CAPTURE_SOURCE = "hve_librarian"
 
 
 class PdfCollectorError(RuntimeError):
@@ -32,6 +35,17 @@ def _sanitize_context(value: str | None) -> str | None:
     return cleaned[:MAX_CONTEXT_LENGTH] or None
 
 
+def _allowed_attachment_roots() -> tuple[Path, ...]:
+    roots = [LEGACY_ATTACHMENT_ROOT]
+    if PROFILE_ROOT.is_dir():
+        roots.extend(
+            profile / "cache" / "documents"
+            for profile in PROFILE_ROOT.iterdir()
+            if profile.is_dir()
+        )
+    return tuple(root.resolve() for root in roots)
+
+
 def _safe_attachment_path(value: str) -> Path:
     candidate = Path(value).expanduser()
     try:
@@ -39,10 +53,11 @@ def _safe_attachment_path(value: str) -> Path:
     except OSError as exc:
         raise PdfCollectorError(f"Attachment is not readable: {exc}") from exc
 
-    try:
-        resolved.relative_to(ALLOWED_ATTACHMENT_ROOT.resolve())
-    except ValueError as exc:
-        raise PdfCollectorError("PDF must come from the Hans Hermes attachment cache") from exc
+    if not any(
+        resolved == root or root in resolved.parents
+        for root in _allowed_attachment_roots()
+    ):
+        raise PdfCollectorError("PDF must come from an approved Hermes attachment cache")
 
     if resolved.suffix.lower() != ".pdf":
         raise PdfCollectorError("Only PDF attachments are accepted")
@@ -72,7 +87,7 @@ def _record_capture(document_id: str, capture_context: str | None) -> dict[str, 
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["source_type"] = "pdf_document"
-    manifest["capture_source"] = "telegram_collector"
+    manifest["capture_source"] = CAPTURE_SOURCE
     captured_at = datetime.now(timezone.utc).isoformat()
     manifest["capture_context"] = capture_context
     manifest["captured_at"] = manifest.get("captured_at") or captured_at
@@ -83,7 +98,7 @@ def _record_capture(document_id: str, capture_context: str | None) -> dict[str, 
         {
             "captured_at": captured_at,
             "capture_context": capture_context,
-            "capture_source": "telegram_collector",
+            "capture_source": CAPTURE_SOURCE,
         }
     )
     manifest["captures"] = captures

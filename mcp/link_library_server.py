@@ -18,6 +18,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools.knowledge import search_knowledge_vault  # noqa: E402
+from tools.library_annotations import (  # noqa: E402
+    AnnotationError,
+    append_annotation,
+    read_annotations,
+)
 
 
 KNOWLEDGE_ROOT = Path("/hve-library")
@@ -28,8 +33,9 @@ DOCUMENT_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 mcp = FastMCP(
     "HVE Knowledge Library",
     instructions=(
-        "Read-only access to the durable HVE knowledge library. Search indexed "
-        "links and PDF documents or retrieve extracted text for a known document ID."
+        "Access the durable HVE knowledge library. Search indexed links and PDF "
+        "documents, retrieve extracted text for a known document ID, and append "
+        "authorized provenance annotations without altering original artifacts."
     ),
 )
 
@@ -83,8 +89,52 @@ def read_link_document(document_id: str, max_chars: int = 12000) -> dict[str, An
         "indexed": manifest.get("status") == "indexed",
         "transcript_status": manifest.get("transcript_status"),
         "transcript_path": manifest.get("transcript_path"),
+        "annotations": read_annotations(document_id),
         "text": text[:safe_max_chars],
         "truncated": len(text) > safe_max_chars,
+    }
+
+
+@mcp.tool()
+def annotate_record(
+    document_id: str,
+    annotation: str,
+    classification: str = "provenance",
+    verification_status: str = "owner_attested",
+    authority: str = "Hans Westphal",
+    evidence: str | None = None,
+) -> dict[str, Any]:
+    """Append an authorized, provenance-bearing annotation to an existing record."""
+    try:
+        return append_annotation(
+            document_id,
+            annotation,
+            classification,
+            verification_status,
+            authority,
+            evidence,
+        )
+    except AnnotationError as exc:
+        return {
+            "status": "rejected",
+            "document_id": str(document_id).strip().lower(),
+            "error": str(exc),
+        }
+
+
+@mcp.tool()
+def list_record_annotations(document_id: str) -> dict[str, Any]:
+    """List append-only annotations for one archived record."""
+    normalized = document_id.strip().lower()
+    if not DOCUMENT_ID_RE.fullmatch(normalized):
+        return {"status": "invalid_document_id", "error": "Expected a 16-character hexadecimal document ID."}
+    manifest_path = MANIFEST_DIR / f"{normalized}.json"
+    if not manifest_path.is_file():
+        return {"status": "not_found", "document_id": normalized}
+    return {
+        "status": "ok",
+        "document_id": normalized,
+        "annotations": read_annotations(normalized),
     }
 
 
