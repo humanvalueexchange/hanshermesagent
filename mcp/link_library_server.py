@@ -18,6 +18,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools.knowledge import search_knowledge_vault  # noqa: E402
+from tools.knowledge_layer_client import run_cli  # noqa: E402
 from tools.library_annotations import (  # noqa: E402
     AnnotationError,
     append_annotation,
@@ -70,14 +71,19 @@ def read_link_document(document_id: str, max_chars: int = 12000) -> dict[str, An
     if not DOCUMENT_ID_RE.fullmatch(document_id):
         return {"status": "invalid_document_id", "error": "Expected a 16-character hexadecimal document ID."}
 
-    manifest_path = MANIFEST_DIR / f"{document_id}.json"
-    if not manifest_path.is_file():
-        return {"status": "not_found", "document_id": document_id}
-
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    text_path = Path(manifest.get("extracted_text_path", ""))
-    text = text_path.read_text(encoding="utf-8") if text_path.is_file() else ""
     safe_max_chars = max(1, min(int(max_chars), 50000))
+    completed = run_cli(["document", document_id, "--max-chars", str(safe_max_chars)])
+    if completed.returncode != 0:
+        if "manifest not found" in completed.stderr.lower():
+            return {"status": "not_found", "document_id": document_id}
+        return {
+            "status": "error",
+            "document_id": document_id,
+            "error": (completed.stderr or completed.stdout).strip(),
+        }
+    payload = json.loads(completed.stdout)
+    manifest = payload["manifest"]
+    text = payload["text"]
     return {
         "status": "ok",
         "document_id": document_id,
@@ -91,7 +97,7 @@ def read_link_document(document_id: str, max_chars: int = 12000) -> dict[str, An
         "transcript_path": manifest.get("transcript_path"),
         "annotations": read_annotations(document_id),
         "text": text[:safe_max_chars],
-        "truncated": len(text) > safe_max_chars,
+        "truncated": payload["truncated"],
     }
 
 
@@ -144,13 +150,14 @@ def list_recent_links(hours: int = 24, max_results: int = 50) -> list[dict[str, 
     safe_hours = max(1, min(int(hours), 24 * 30))
     safe_max_results = max(1, min(int(max_results), 200))
     cutoff = datetime.now(timezone.utc) - timedelta(hours=safe_hours)
+    completed = run_cli(["documents"])
+    if completed.returncode != 0:
+        return []
+    manifests = json.loads(completed.stdout)
     results: list[dict[str, Any]] = []
 
-    for manifest_path in MANIFEST_DIR.glob("*.json"):
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
+    for manifest in manifests:
+        manifest_path = Path(manifest["_manifest_path"])
         if not isinstance(manifest, dict) or manifest.get("source_type") not in {"web_link", "youtube_video"}:
             continue
 
