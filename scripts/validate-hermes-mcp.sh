@@ -10,7 +10,8 @@ ACTIVE_PROFILE="$(cat "${HOME}/.hermes/active_profile" 2>/dev/null || echo defau
 CONFIG_FILE="${HOME}/.hermes/profiles/${ACTIVE_PROFILE}/config.yaml"
 SKILLS_DIR="${HOME}/hanshermesagent/skills/hve"
 KNOWLEDGE_PYTHON="${HOME}/.hve-knowledge/venv/bin/python3"
-KNOWLEDGE_SEARCH_SCRIPT="${HOME}/hanshermesagent/mcp/tools/knowledge/search.py"
+KNOWLEDGE_INSTALL_ROOT="${HVE_KNOWLEDGE_INSTALL_ROOT:-/opt/hve-knowledge-layer/current}"
+KNOWLEDGE_SEARCH_SCRIPT="${KNOWLEDGE_INSTALL_ROOT}/src/hve_knowledge_layer/cli.py"
 PASS=0
 FAIL=0
 

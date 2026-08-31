@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT="/hve-library"
 PYTHON_BIN="${HVE_KNOWLEDGE_PYTHON:-/home/hans/.hve-knowledge/venv/bin/python3}"
+KNOWLEDGE_INSTALL_ROOT="${HVE_KNOWLEDGE_INSTALL_ROOT:-/opt/hve-knowledge-layer/current}"
+KNOWLEDGE_PYTHONPATH="${KNOWLEDGE_INSTALL_ROOT}/src"
+KNOWLEDGE_CONFIG="${KNOWLEDGE_INSTALL_ROOT}/config/knowledge-layer/knowledge-layer.yaml"
 TIMEOUT_SECONDS="${HVE_INTAKE_TIMEOUT_SECONDS:-300}"
 POLL_SECONDS="${HVE_INTAKE_POLL_SECONDS:-5}"
 KEEP_ARTIFACTS=0
@@ -53,7 +56,6 @@ print(Path(sys.argv[1]).resolve())
 PY
 )"
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 PREFIX="validate-intake-${TIMESTAMP}-$$"
@@ -153,7 +155,7 @@ wait_for_path_present() {
 }
 
 require_path "${PYTHON_BIN}"
-require_path "${REPO_DIR}/knowledge/layer/run_intake_pipeline.py"
+require_path "${KNOWLEDGE_INSTALL_ROOT}/src/hve_knowledge_layer/cli.py"
 require_path "${ROOT}/intake/inbox"
 require_path "${ROOT}/intake/failed"
 require_path "${ROOT}/raw/pdfs"
@@ -212,7 +214,8 @@ printf 'not-a-real-pdf\n' > "${CORRUPT_PDF}"
 
 cp "${CLEAN_PDF}" "${ROOT}/intake/inbox/"
 log "STEP clean-ingest $(basename "${CLEAN_PDF}")"
-"${PYTHON_BIN}" "${REPO_DIR}/knowledge/layer/run_intake_pipeline.py" --root "${ROOT}" | tee -a "${LOG_FILE}"
+PYTHONPATH="${KNOWLEDGE_PYTHONPATH}" HVE_KNOWLEDGE_CONFIG="${KNOWLEDGE_CONFIG}" \
+  "${PYTHON_BIN}" -m hve_knowledge_layer.cli --root "${ROOT}" intake | tee -a "${LOG_FILE}"
 wait_for_path_gone "${ROOT}/intake/inbox/$(basename "${CLEAN_PDF}")"
 
 mapfile -t CLEAN_META < <("${PYTHON_BIN}" - <<'PY' "${ROOT}" "$(basename "${CLEAN_PDF}")"
@@ -268,7 +271,8 @@ log "PASS clean-ingest document_id=${DOC_ID} chunks=${CHUNK_COUNT}"
 
 cp "${DUPLICATE_PDF}" "${ROOT}/intake/inbox/"
 log "STEP duplicate-ingest $(basename "${DUPLICATE_PDF}")"
-"${PYTHON_BIN}" "${REPO_DIR}/knowledge/layer/run_intake_pipeline.py" --root "${ROOT}" | tee -a "${LOG_FILE}"
+PYTHONPATH="${KNOWLEDGE_PYTHONPATH}" HVE_KNOWLEDGE_CONFIG="${KNOWLEDGE_CONFIG}" \
+  "${PYTHON_BIN}" -m hve_knowledge_layer.cli --root "${ROOT}" intake | tee -a "${LOG_FILE}"
 wait_for_path_gone "${ROOT}/intake/inbox/$(basename "${DUPLICATE_PDF}")"
 wait_for_path_present "${ROOT}/intake/failed/$(basename "${DUPLICATE_PDF}")"
 
@@ -294,7 +298,8 @@ log "PASS duplicate-ingest document_id=${DOC_ID} chunks=${DUPLICATE_COUNT}"
 cp "${CORRUPT_PDF}" "${ROOT}/intake/inbox/"
 log "STEP corrupt-ingest $(basename "${CORRUPT_PDF}")"
 set +e
-"${PYTHON_BIN}" "${REPO_DIR}/knowledge/layer/run_intake_pipeline.py" --root "${ROOT}" | tee -a "${LOG_FILE}"
+PYTHONPATH="${KNOWLEDGE_PYTHONPATH}" HVE_KNOWLEDGE_CONFIG="${KNOWLEDGE_CONFIG}" \
+  "${PYTHON_BIN}" -m hve_knowledge_layer.cli --root "${ROOT}" intake | tee -a "${LOG_FILE}"
 CORRUPT_EXIT=$?
 set -e
 if [[ "${CORRUPT_EXIT}" -eq 0 ]]; then

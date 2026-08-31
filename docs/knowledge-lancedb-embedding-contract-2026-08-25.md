@@ -29,7 +29,8 @@ the existing LanceDB table.
 ## Fix
 
 The embedding contract is now explicit in
-`knowledge/layer/embedding_contract.py`:
+`hve_knowledge_layer.embedding_contract` in the independent knowledge-layer
+deployment:
 
 | Purpose | Identifier |
 |---|---|

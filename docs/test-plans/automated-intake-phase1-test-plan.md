@@ -68,7 +68,7 @@ Current baseline (as of 2026-05-31):
 - Telegram access for 5× live validation (strict raw-output protocol).
 
 **Repo vs Live Note:** The canonical control-plane path is
-`/home/hans/hanshermesagent/knowledge/layer/`; tests must verify deployed services
+`/opt/hve-knowledge-layer/current`; tests must verify deployed services
 use this path.
 
 ---

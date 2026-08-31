@@ -10,15 +10,14 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from tools.knowledge_layer_client import KNOWLEDGE_ROOT, cli_command, cli_environment
 
-KNOWLEDGE_ROOT = Path("/hve-library")
+
 INBOX_ROOT = KNOWLEDGE_ROOT / "intake" / "inbox"
 MANIFEST_ROOT = KNOWLEDGE_ROOT / "state" / "manifests"
 HERMES_ROOT = Path.home() / ".hermes"
 LEGACY_ATTACHMENT_ROOT = HERMES_ROOT / "cache" / "documents"
 PROFILE_ROOT = HERMES_ROOT / "profiles"
-PIPELINE_SCRIPT = Path("/home/hans/hanshermesagent/knowledge/layer/run_intake_pipeline.py")
-PIPELINE_PYTHON = Path.home() / ".hve-knowledge" / "venv" / "bin" / "python3"
 MAX_PDF_BYTES = 30 * 1024 * 1024
 MAX_CONTEXT_LENGTH = 20_000
 CAPTURE_SOURCE = "hve_librarian"
@@ -141,15 +140,15 @@ def archive_pdf(
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
 
-    command = [
-        str(PIPELINE_PYTHON),
-        str(PIPELINE_SCRIPT),
-        "--root",
-        str(root),
-        "--pdf",
-        str(destination),
-    ]
-    result = subprocess.run(command, capture_output=True, text=True, timeout=300, check=False)
+    command = cli_command("intake", "--pdf", str(destination), root=root)
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+        env=cli_environment(),
+    )
     output = (result.stdout or "").strip()
     error = (result.stderr or "").strip()
     document_id = _document_id(source)

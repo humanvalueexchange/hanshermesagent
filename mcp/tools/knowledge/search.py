@@ -5,20 +5,19 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import sys
 from pathlib import Path
 
 logging.disable(logging.WARNING)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-KNOWLEDGE_ROOT = Path("/hve-library")
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from tools.knowledge_layer_client import KNOWLEDGE_ROOT as CLIENT_ROOT, run_cli  # noqa: E402
+
+KNOWLEDGE_ROOT = CLIENT_ROOT
 LANCEDB_DIR = KNOWLEDGE_ROOT / "index" / "lancedb"
-
-sys.path.insert(0, str(REPO_ROOT / "knowledge" / "layer"))
-
-import lancedb  # noqa: E402
-from query_lancedb import QueryEmbedder, TABLE_NAME  # noqa: E402
 
 
 def _format_pages(page_start: object, page_end: object) -> str:
@@ -48,10 +47,11 @@ def main() -> int:
         print(f"LanceDB directory not found at {LANCEDB_DIR}", file=sys.stderr)
         return 1
 
-    embedder = QueryEmbedder()
-    db = lancedb.connect(str(LANCEDB_DIR))
-    table = db.open_table(TABLE_NAME)
-    rows = table.search(embedder.encode(args.query)).limit(max(1, args.max_results)).to_list()
+    completed = run_cli(["query", args.query, "--top-k", str(max(1, args.max_results))])
+    if completed.returncode != 0:
+        print((completed.stderr or completed.stdout).strip(), file=sys.stderr)
+        return completed.returncode
+    rows = json.loads(completed.stdout)
 
     payload = []
     for row in rows:

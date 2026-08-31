@@ -4,12 +4,19 @@ import json
 from pathlib import Path
 from typing import Callable
 
+from tools.knowledge_layer_client import (
+    KNOWLEDGE_INSTALL_ROOT,
+    KNOWLEDGE_PYTHON,
+    KNOWLEDGE_ROOT,
+    cli_command,
+)
+
 RunCommand = Callable[[list[str], int], tuple[int, str]]
 
-HVE_LIBRARY_ROOT = Path("/hve-library")
+HVE_LIBRARY_ROOT = KNOWLEDGE_ROOT
 PROCESSED_TEXT_DIR = HVE_LIBRARY_ROOT / "processed" / "text"
-KNOWLEDGE_VENV_PYTHON = Path.home() / ".hve-knowledge" / "venv" / "bin" / "python3"
-KNOWLEDGE_SEARCH_SCRIPT = Path.home() / "hanshermesagent" / "mcp" / "tools" / "knowledge" / "search.py"
+KNOWLEDGE_VENV_PYTHON = KNOWLEDGE_PYTHON
+KNOWLEDGE_SEARCH_SCRIPT = KNOWLEDGE_INSTALL_ROOT / "src" / "hve_knowledge_layer" / "cli.py"
 MAX_RESULTS = 20
 SEMANTIC_SEARCH_TIMEOUT = 120
 
@@ -51,16 +58,30 @@ def _format_semantic_results(query: str, rows: list[dict]) -> str:
 
     results = []
     for row in rows:
+        page_start = row.get("page_start")
+        page_end = row.get("page_end")
+        pages = row.get("pages")
+        if pages is None:
+            if page_start is None and page_end is None:
+                pages = None
+            elif page_start == page_end:
+                pages = str(page_start)
+            else:
+                pages = f"{page_start or '?'}-{page_end or '?'}"
+        excerpt = row.get("excerpt") or row.get("text")
         parts = [
             f"### {row.get('book') or 'Unknown source'}",
             f"Author: {row.get('author') or 'Unknown'}",
             f"Chapter: {row.get('chapter') or 'Unknown'}",
-            f"Pages: {_format_pages(row.get('pages'))}",
+            f"Pages: {_format_pages(pages)}",
         ]
-        score = _format_score(row.get("score"))
+        score = row.get("score")
+        if score is None and row.get("_distance") is not None:
+            score = max(0.0, 1 - float(row["_distance"]))
+        score = _format_score(score)
         if score is not None:
             parts.append(f"Score: {score}")
-        parts.append(f"Excerpt: {_format_excerpt(row.get('excerpt'))}")
+        parts.append(f"Excerpt: {_format_excerpt(excerpt)}")
         results.append("\n".join(parts))
 
     header = f"Found {len(rows)} semantic result(s) for '{query}' in HVE library:\n\n"
@@ -96,14 +117,7 @@ def search_knowledge_vault(query: str, max_results: int, run_command: RunCommand
 
     if KNOWLEDGE_VENV_PYTHON.exists() and KNOWLEDGE_SEARCH_SCRIPT.exists():
         code, output = run_command(
-            [
-                str(KNOWLEDGE_VENV_PYTHON),
-                str(KNOWLEDGE_SEARCH_SCRIPT),
-                "--query",
-                query,
-                "--max-results",
-                str(safe_max_results),
-            ],
+            cli_command("query", query, "--top-k", str(safe_max_results)),
             SEMANTIC_SEARCH_TIMEOUT,
         )
         if code == 0:

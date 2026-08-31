@@ -23,14 +23,18 @@ from typing import Any, Callable
 
 from typing import Any, Callable
 
-from knowledge.layer.embedding_contract import CONTRACT_MODEL
+from tools.knowledge_layer_client import (
+    EMBEDDING_CONTRACT_MODEL,
+    KNOWLEDGE_INSTALL_ROOT,
+    KNOWLEDGE_PYTHON,
+    cli_command,
+    cli_environment,
+)
 
 from websockets.sync.client import connect as websocket_connect
 
 
 DEFAULT_ROOT = Path("/hve-library")
-INDEX_PYTHON = Path.home() / ".hve-knowledge" / "venv" / "bin" / "python3"
-INDEX_SCRIPT = Path(__file__).resolve().parents[1] / "knowledge" / "layer" / "index_link_chunks.py"
 MAX_URL_LENGTH = 4096
 MAX_CONTEXT_LENGTH = 20_000
 MAX_HTML_BYTES = 5 * 1024 * 1024
@@ -611,7 +615,7 @@ def _build_chunk_records(
             "page_end": 1,
             "chunk_index": index,
             "text": chunk,
-            "embedding_model": CONTRACT_MODEL,
+            "embedding_model": EMBEDDING_CONTRACT_MODEL,
             "chunk_hash": _sha256_text(chunk),
             "created_at": created_at,
             "publisher": None,
@@ -627,30 +631,27 @@ def _write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
 
 
 def index_link_chunks(root: Path, chunk_path: Path, manifest_path: Path) -> dict[str, Any]:
-    if not INDEX_PYTHON.is_file() or not INDEX_SCRIPT.is_file():
+    if not KNOWLEDGE_PYTHON.is_file() or not KNOWLEDGE_INSTALL_ROOT.exists():
         return {
             "indexed": False,
             "status": "unavailable",
             "error": "LanceDB index runtime is unavailable",
         }
-    environment = os.environ.copy()
     try:
         result = subprocess.run(
-            [
-                str(INDEX_PYTHON),
-                str(INDEX_SCRIPT),
-                "--root",
-                str(root),
+            cli_command(
+                "index",
                 "--chunk-file",
                 str(chunk_path),
                 "--manifest",
                 str(manifest_path),
-            ],
+                root=root,
+            ),
             capture_output=True,
             text=True,
             check=False,
             timeout=180,
-            env=environment,
+            env=cli_environment(),
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {"indexed": False, "status": "failed", "error": str(exc)}

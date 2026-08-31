@@ -4,8 +4,10 @@ Description=HVE Intake Pipeline — Index new PDFs into LanceDB
 [Service]
 Type=oneshot
 Slice=hve-knowledge.slice
-WorkingDirectory=/home/hans/hanshermesagent
-ExecStart=/home/hans/.hve-knowledge/venv/bin/python3 knowledge/layer/run_intake_pipeline.py
+WorkingDirectory=/opt/hve-knowledge-layer/current
+Environment=PYTHONPATH=/opt/hve-knowledge-layer/current/src
+Environment=HVE_KNOWLEDGE_CONFIG=/opt/hve-knowledge-layer/current/config/knowledge-layer/knowledge-layer.yaml
+ExecStart=/home/hans/.hve-knowledge/venv/bin/python3 -m hve_knowledge_layer.cli --root /hve-library intake
 StandardOutput=journal
 StandardError=journal
 Environment=CUDA_VISIBLE_DEVICES=

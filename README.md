@@ -153,7 +153,7 @@ hanshermesagent/
 ├── config/                    Runtime and knowledge-layer configuration
 ├── cron/                      Scheduled CFO and briefing jobs
 ├── dotfiles/                  Deployable systemd units, hooks, and templates
-├── knowledge/layer/            Extraction, OCR, chunking, indexing, finalization
+├── tools/knowledge_layer_client.py  Independent knowledge-layer client boundary
 ├── mcp/                       Hermes MCP server and collector/library servers
 ├── skills/                    Native Hermes skill playbooks
 ├── tools/                     Link, PDF, knowledge, and treasury utilities
