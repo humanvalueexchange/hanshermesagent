@@ -18,7 +18,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools.knowledge import search_knowledge_vault_machine  # noqa: E402
-from tools.knowledge_layer_client import run_cli  # noqa: E402
+from tools.knowledge_layer_client import cli_environment, run_cli  # noqa: E402
 from tools.library_annotations import (  # noqa: E402
     AnnotationError,
     append_annotation,
@@ -42,13 +42,20 @@ mcp = FastMCP(
 
 
 def _run(command: list[str], timeout: int) -> tuple[int, str]:
-    completed = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            env=cli_environment(),
+        )
+    except subprocess.TimeoutExpired as exc:
+        detail = str(exc)
+        return 124, f"knowledge-layer command timed out: {detail}"
+    except (FileNotFoundError, OSError) as exc:
+        return 127, f"knowledge-layer command could not start: {exc}"
     output = completed.stdout.strip()
     if completed.returncode != 0 and completed.stderr.strip():
         output = completed.stderr.strip()

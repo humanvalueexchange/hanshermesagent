@@ -132,6 +132,10 @@ class KnowledgeToolTests(unittest.TestCase):
         self.assertEqual(result["retrieval_mode"], "keyword_fallback")
         self.assertTrue(result["fallback_used"])
         self.assertIn("refused", result["backend_error"])
+        self.assertEqual(
+            result["results"],
+            [{"path": "fallback.txt", "excerpt": "8:fallback line"}],
+        )
 
 
 if __name__ == "__main__":

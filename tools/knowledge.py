@@ -88,28 +88,46 @@ def _format_semantic_results(query: str, rows: list[dict]) -> str:
     return header + "\n\n---\n\n".join(results)
 
 
-def _fallback_grep_search(query: str, max_results: int, run_command: RunCommand) -> str:
+def _fallback_grep_search(
+    query: str, max_results: int, run_command: RunCommand
+) -> list[dict[str, str]]:
     if not PROCESSED_TEXT_DIR.exists():
-        return "Knowledge library text not found at /hve-library/processed/text."
+        return []
 
     code, output = run_command(
         ["grep", "-r", "-i", "-l", "--include=*.txt", query, str(PROCESSED_TEXT_DIR)],
         15,
     )
     if code != 0 or not output.strip():
-        return f"No results found for '{query}' in HVE library."
+        return []
 
     matched_files = output.strip().splitlines()[:max_results]
-    results = []
+    results: list[dict[str, str]] = []
     for fpath in matched_files:
         file_path = Path(fpath)
         relative = file_path.relative_to(PROCESSED_TEXT_DIR)
         _, lines = run_command(["grep", "-i", "-n", "-m", "10", query, fpath], 10)
         snippet = _format_excerpt(lines)
-        results.append(f"### {relative}\nExcerpt: {snippet}")
+        results.append(
+            {
+                "path": str(relative),
+                "excerpt": snippet,
+            }
+        )
+    return results
 
-    header = f"Semantic search unavailable. Found {len(matched_files)} fallback result(s) for '{query}':\n\n"
-    return header + "\n\n---\n\n".join(results)
+
+def _format_fallback_results(query: str, results: list[dict[str, str]]) -> str:
+    if not results:
+        return f"No results found for '{query}' in HVE library."
+    formatted = [
+        f"### {result['path']}\nExcerpt: {result['excerpt']}" for result in results
+    ]
+    header = (
+        f"Semantic search unavailable. Found {len(results)} fallback result(s) "
+        f"for '{query}':\n\n"
+    )
+    return header + "\n\n---\n\n".join(formatted)
 
 
 def search_knowledge_vault_machine(
@@ -156,4 +174,4 @@ def search_knowledge_vault(query: str, max_results: int, run_command: RunCommand
     result = search_knowledge_vault_machine(query, max_results, run_command)
     if result["retrieval_mode"] == "semantic":
         return _format_semantic_results(query, result["results"])
-    return result["results"]
+    return _format_fallback_results(query, result["results"])
