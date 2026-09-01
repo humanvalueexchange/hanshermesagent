@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tools.knowledge import search_knowledge_vault  # noqa: E402
+from tools.knowledge import search_knowledge_vault_machine  # noqa: E402
 from tools.knowledge_layer_client import run_cli  # noqa: E402
 from tools.library_annotations import (  # noqa: E402
     AnnotationError,
@@ -56,12 +56,18 @@ def _run(command: list[str], timeout: int) -> tuple[int, str]:
 
 
 @mcp.tool()
-def search_link_library(query: str, max_results: int = 5) -> str:
+def search_link_library(query: str, max_results: int = 5) -> dict[str, Any]:
     """Search archived links and indexed PDF documents by meaning or keywords."""
     query = query.strip()
     if not query:
-        return "Query must not be empty."
-    return search_knowledge_vault(query, max_results, _run)
+        return {
+            "retrieval_mode": "invalid",
+            "semantic_available": False,
+            "fallback_used": False,
+            "backend_error": "Query must not be empty.",
+            "results": [],
+        }
+    return search_knowledge_vault_machine(query, max_results, _run)
 
 
 @mcp.tool()
@@ -99,6 +105,45 @@ def read_link_document(document_id: str, max_chars: int = 12000) -> dict[str, An
         "text": text[:safe_max_chars],
         "truncated": payload["truncated"],
     }
+
+
+@mcp.tool()
+def read_link_document_chunks(
+    document_id: str,
+    start_chunk: int = 0,
+    max_chunks: int = 10,
+) -> dict[str, Any]:
+    """Read a bounded, provenance-preserving page of document chunks."""
+    document_id = document_id.strip().lower()
+    if not DOCUMENT_ID_RE.fullmatch(document_id):
+        return {
+            "status": "invalid_document_id",
+            "error": "Expected a 16-character hexadecimal document ID.",
+        }
+    try:
+        safe_start = max(0, min(int(start_chunk), 1_000_000))
+        safe_max = max(1, min(int(max_chunks), 10))
+    except (TypeError, ValueError):
+        return {"status": "invalid_pagination", "document_id": document_id}
+    completed = run_cli(
+        [
+            "document-chunks",
+            document_id,
+            "--start-chunk",
+            str(safe_start),
+            "--max-chunks",
+            str(safe_max),
+        ]
+    )
+    if completed.returncode != 0:
+        return {
+            "status": "error",
+            "document_id": document_id,
+            "error": (completed.stderr or completed.stdout).strip(),
+        }
+    payload = json.loads(completed.stdout)
+    payload["status"] = "ok"
+    return payload
 
 
 @mcp.tool()

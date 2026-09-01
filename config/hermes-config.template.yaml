@@ -491,6 +491,23 @@ toolsets:
 - hermes-cli
 - web
 mcp_servers:
+  hve-shared-context:
+    command: /opt/hve-shared-context/current/.venv/bin/python
+    args:
+    - -m
+    - hve_shared_context.mcp_server
+    env:
+      HVE_SHARED_CONTEXT_STORE: /var/lib/hve-shared-context
+    tools:
+      prompts: false
+      include:
+      - get_agent_context
+      - get_daily_context
+      - list_entities
+      - search_context
+      - list_decisions
+      - list_goals
+      - get_provenance
   hve-node:
     url: "http://localhost:8765/mcp"
     headers:

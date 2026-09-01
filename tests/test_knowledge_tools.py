@@ -101,6 +101,38 @@ class KnowledgeToolTests(unittest.TestCase):
         self.assertNotIn("Score:", result)
         self.assertIn("Excerpt: text", result)
 
+    def test_machine_result_identifies_semantic_backend(self) -> None:
+        with self._patch_exists({knowledge.KNOWLEDGE_VENV_PYTHON, knowledge.KNOWLEDGE_SEARCH_SCRIPT}):
+            result = knowledge.search_knowledge_vault_machine(
+                "query",
+                5,
+                lambda cmd, timeout: (0, '[{"document_id":"0123456789abcdef"}]'),
+            )
+        self.assertEqual(result["retrieval_mode"], "semantic")
+        self.assertTrue(result["semantic_available"])
+        self.assertFalse(result["fallback_used"])
+        self.assertIsNone(result["backend_error"])
+
+    def test_machine_result_preserves_semantic_error_on_fallback(self) -> None:
+        def fake_run(cmd: list[str], timeout: int) -> tuple[int, str]:
+            if cmd[0] == "grep" and "-l" in cmd:
+                return 0, "/hve-library/processed/text/fallback.txt"
+            if cmd[0] == "grep":
+                return 0, "8:fallback line"
+            return 1, "Ollama embedding request failed: refused"
+
+        with self._patch_exists(
+            {
+                knowledge.KNOWLEDGE_VENV_PYTHON,
+                knowledge.KNOWLEDGE_SEARCH_SCRIPT,
+                knowledge.PROCESSED_TEXT_DIR,
+            }
+        ):
+            result = knowledge.search_knowledge_vault_machine("query", 5, fake_run)
+        self.assertEqual(result["retrieval_mode"], "keyword_fallback")
+        self.assertTrue(result["fallback_used"])
+        self.assertIn("refused", result["backend_error"])
+
 
 if __name__ == "__main__":
     unittest.main()

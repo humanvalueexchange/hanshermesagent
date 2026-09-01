@@ -48,6 +48,11 @@ Before recording or reviewing decisions, read:
 4. The canonical mission file:
    `/home/hans/humanvalueexchange/instructions.md`
 
+Shared context is a separate read plane and does not replace the decision
+ledger. For planning or context review, retrieve shared-context entities,
+goals, and packets separately from ledger events; source evidence cannot
+override an approved ledger decision.
+
 If the latest report or ledger is unavailable, state that limitation and do not
 silently create an unlinked decision.
 

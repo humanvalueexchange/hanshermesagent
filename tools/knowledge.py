@@ -112,9 +112,12 @@ def _fallback_grep_search(query: str, max_results: int, run_command: RunCommand)
     return header + "\n\n---\n\n".join(results)
 
 
-def search_knowledge_vault(query: str, max_results: int, run_command: RunCommand) -> str:
+def search_knowledge_vault_machine(
+    query: str, max_results: int, run_command: RunCommand
+) -> dict:
+    """Return retrieval mode, backend health, and bounded result data."""
     safe_max_results = _clamp_max_results(max_results)
-
+    backend_error = None
     if KNOWLEDGE_VENV_PYTHON.exists() and KNOWLEDGE_SEARCH_SCRIPT.exists():
         code, output = run_command(
             cli_command("query", query, "--top-k", str(safe_max_results)),
@@ -123,10 +126,34 @@ def search_knowledge_vault(query: str, max_results: int, run_command: RunCommand
         if code == 0:
             try:
                 payload = json.loads(output)
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as exc:
+                backend_error = f"invalid semantic response: {exc}"
             else:
                 if isinstance(payload, list):
-                    return _format_semantic_results(query, payload)
+                    return {
+                        "retrieval_mode": "semantic",
+                        "semantic_available": True,
+                        "fallback_used": False,
+                        "backend_error": None,
+                        "results": payload,
+                    }
+                backend_error = "semantic response was not a result list"
+        else:
+            backend_error = output or f"semantic query exited with status {code}"
+    else:
+        backend_error = "semantic query runtime is unavailable"
 
-    return _fallback_grep_search(query, safe_max_results, run_command)
+    return {
+        "retrieval_mode": "keyword_fallback",
+        "semantic_available": False,
+        "fallback_used": True,
+        "backend_error": backend_error,
+        "results": _fallback_grep_search(query, safe_max_results, run_command),
+    }
+
+
+def search_knowledge_vault(query: str, max_results: int, run_command: RunCommand) -> str:
+    result = search_knowledge_vault_machine(query, max_results, run_command)
+    if result["retrieval_mode"] == "semantic":
+        return _format_semantic_results(query, result["results"])
+    return result["results"]
