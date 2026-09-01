@@ -97,6 +97,7 @@ def read_link_document(document_id: str, max_chars: int = 12000) -> dict[str, An
     payload = json.loads(completed.stdout)
     manifest = payload["manifest"]
     text = payload["text"]
+    validation_warnings = payload.get("validation_warnings", [])
     return {
         "status": "ok",
         "document_id": document_id,
@@ -118,7 +119,8 @@ def read_link_document(document_id: str, max_chars: int = 12000) -> dict[str, An
         "annotations": read_annotations(document_id),
         "text": text[:safe_max_chars],
         "truncated": payload["truncated"],
-        "validation_status": "validated",
+        "validation_status": payload.get("validation_status", "validated"),
+        "validation_warnings": validation_warnings,
     }
 
 
