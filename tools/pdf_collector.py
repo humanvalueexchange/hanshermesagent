@@ -7,14 +7,13 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
 from tools.knowledge_layer_client import KNOWLEDGE_ROOT, cli_command, cli_environment
 
 
-INBOX_ROOT = KNOWLEDGE_ROOT / "intake" / "inbox"
-MANIFEST_ROOT = KNOWLEDGE_ROOT / "state" / "manifests"
 HERMES_ROOT = Path.home() / ".hermes"
 LEGACY_ATTACHMENT_ROOT = HERMES_ROOT / "cache" / "documents"
 PROFILE_ROOT = HERMES_ROOT / "profiles"
@@ -79,8 +78,13 @@ def _document_id(pdf_path: Path) -> str:
     return digest.hexdigest()[:16]
 
 
-def _record_capture(document_id: str, capture_context: str | None) -> dict[str, Any]:
-    manifest_path = MANIFEST_ROOT / f"{document_id}.json"
+def _record_capture(
+    document_id: str,
+    capture_context: str | None,
+    *,
+    root: Path = KNOWLEDGE_ROOT,
+) -> dict[str, Any]:
+    manifest_path = root / "state" / "manifests" / f"{document_id}.json"
     if not manifest_path.is_file():
         return {"status": "indexed", "document_id": document_id}
 
@@ -120,15 +124,15 @@ def archive_pdf(
 ) -> dict[str, Any]:
     source = _safe_attachment_path(pdf_path)
     context = _sanitize_context(capture_context)
-    inbox = root / "intake" / "inbox"
-    inbox.mkdir(parents=True, exist_ok=True)
-    destination = inbox / _safe_filename(source.name)
+    telegram_queue = root / "intake" / "telegram"
+    telegram_queue.mkdir(parents=True, exist_ok=True)
+    destination = telegram_queue / _safe_filename(source.name)
     if destination.exists():
-        destination = inbox / f"{source.stem}-{_document_id(source)}.pdf"
+        destination = telegram_queue / f"{source.stem}-{_document_id(source)}.pdf"
     temporary_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
-            dir=inbox,
+            dir=telegram_queue,
             prefix=f".{destination.name}.",
             suffix=".part",
             delete=False,
@@ -140,28 +144,44 @@ def archive_pdf(
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
 
-    command = cli_command("intake", "--pdf", str(destination), root=root)
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        timeout=300,
-        check=False,
-        env=cli_environment(),
-    )
-    output = (result.stdout or "").strip()
-    error = (result.stderr or "").strip()
+    output = ""
+    error = ""
+    for attempt in range(30):
+        try:
+            result = subprocess.run(
+                cli_command("intake", "--pdf", str(destination), root=root),
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+                env=cli_environment(),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return {
+                "status": "failed",
+                "archived": False,
+                "indexed": False,
+                "document_id": _document_id(source),
+                "error": f"{type(exc).__name__}: PDF intake pipeline failed",
+            }
+        output = (result.stdout or "").strip()
+        error = (result.stderr or "").strip()
+        if "SKIPPED reason=another library worker is active" not in output:
+            break
+        if attempt < 29:
+            time.sleep(1)
     document_id = _document_id(source)
-    if result.returncode != 0:
+    if result.returncode != 0 or "SKIPPED reason=another library worker is active" in output:
         return {
-            "status": "failed",
-            "archived": False,
+            "status": "queued",
+            "archived": True,
             "indexed": False,
             "document_id": document_id,
-            "error": error or output or "PDF intake pipeline failed",
+            "retryable": True,
+            "pipeline_output": output[-2000:],
+            "error": error or "PDF intake pipeline remained busy after retry window",
         }
-
-    record = _record_capture(document_id, context)
+    record = _record_capture(document_id, context, root=root)
     record.update(
         {
             "archived": True,

@@ -349,12 +349,83 @@ class LinkCollectorTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            with mock.patch.object(pdf_collector, "MANIFEST_ROOT", manifest_root):
-                result = pdf_collector._record_capture("document", "second")
+            state_root = Path(tmpdir) / "library"
+            (state_root / "state" / "manifests").mkdir(parents=True)
+            (state_root / "state" / "manifests" / "document.json").write_text(
+                manifest_path.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            result = pdf_collector._record_capture("document", "second", root=state_root)
 
             self.assertEqual(result["status"], "processed")
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest = json.loads(
+                (state_root / "state" / "manifests" / "document.json").read_text(encoding="utf-8")
+            )
             self.assertEqual([item["capture_context"] for item in manifest["captures"]], ["first", "second"])
+
+    def test_pdf_intake_uses_private_telegram_queue(self) -> None:
+        from tools import pdf_collector
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            cache = root / "cache"
+            cache.mkdir()
+            source = cache / "course.pdf"
+            source.write_bytes(b"%PDF-test")
+            manifest_path = root / "state" / "manifests" / "course.json"
+            manifest_path.parent.mkdir(parents=True)
+            manifest_path.write_text(
+                json.dumps({"document_id": "course", "status": "indexed", "source_path": "raw/course.pdf"}),
+                encoding="utf-8",
+            )
+            completed = mock.Mock(
+                returncode=0,
+                stdout="RESULT indexed=1 failures=0 skipped=0",
+                stderr="",
+            )
+            with (
+                mock.patch.object(pdf_collector, "_allowed_attachment_roots", return_value=(cache,)),
+                mock.patch.object(pdf_collector, "_document_id", return_value="course"),
+                mock.patch.object(pdf_collector.subprocess, "run", return_value=completed) as run,
+            ):
+                result = pdf_collector.archive_pdf(str(source), "telegram note", root=root)
+
+            self.assertTrue(result["indexed"])
+            self.assertTrue((root / "intake" / "telegram").exists())
+            self.assertFalse((root / "intake" / "inbox").exists())
+            self.assertIn(str(root / "intake" / "telegram" / "course.pdf"), run.call_args.args[0])
+
+    def test_pdf_intake_retries_transient_library_lock(self) -> None:
+        from tools import pdf_collector
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            cache = root / "cache"
+            cache.mkdir()
+            source = cache / "course.pdf"
+            source.write_bytes(b"%PDF-test")
+            manifest_path = root / "state" / "manifests" / "course.json"
+            manifest_path.parent.mkdir(parents=True)
+            manifest_path.write_text(
+                json.dumps({"document_id": "course", "status": "indexed", "source_path": "raw/course.pdf"}),
+                encoding="utf-8",
+            )
+            busy = mock.Mock(
+                returncode=0,
+                stdout="SKIPPED reason=another library worker is active root=/hve-library",
+                stderr="",
+            )
+            success = mock.Mock(returncode=0, stdout="RESULT indexed=1 failures=0", stderr="")
+            with (
+                mock.patch.object(pdf_collector, "_allowed_attachment_roots", return_value=(cache,)),
+                mock.patch.object(pdf_collector, "_document_id", return_value="course"),
+                mock.patch.object(pdf_collector.subprocess, "run", side_effect=[busy, success]) as run,
+                mock.patch.object(pdf_collector.time, "sleep"),
+            ):
+                result = pdf_collector.archive_pdf(str(source), root=root)
+
+            self.assertTrue(result["indexed"])
+            self.assertEqual(run.call_count, 2)
 
 
 if __name__ == "__main__":
