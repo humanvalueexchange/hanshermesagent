@@ -24,7 +24,9 @@ Use this workflow for HVE planning and offer-design requests, including:
    `backend_error`.
 5. Read known sources with `read_link_document`; use
    `read_link_document_chunks` for large documents and follow continuation
-   metadata until the needed bounded range is retrieved.
+   metadata until the needed bounded range is retrieved. Use
+   `include_text=false` for metadata/provenance pagination checks and
+   `include_text=true` only when bounded source text is required.
 6. Preserve document IDs, SHA-256 hashes, manifest/provenance references,
    chunk ranges, validation status, and continuation metadata.
 7. Reconcile conflicts explicitly. Approved Hans decisions retain authority;

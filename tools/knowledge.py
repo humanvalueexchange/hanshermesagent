@@ -88,6 +88,30 @@ def _format_semantic_results(query: str, rows: list[dict]) -> str:
     return header + "\n\n---\n\n".join(results)
 
 
+def _normalize_semantic_results(rows: list[dict]) -> list[dict]:
+    normalized: list[dict] = []
+    allowed_fields = {
+        "document_id",
+        "sha256",
+        "book",
+        "author",
+        "chapter",
+        "pages",
+        "page_start",
+        "page_end",
+        "chunk_id",
+        "chunk_index",
+        "score",
+        "_distance",
+        "source_path",
+    }
+    for row in rows[:MAX_RESULTS]:
+        item = {key: row[key] for key in allowed_fields if key in row}
+        item["excerpt"] = _format_excerpt(row.get("excerpt") or row.get("text"))
+        normalized.append(item)
+    return normalized
+
+
 def _fallback_grep_search(
     query: str, max_results: int, run_command: RunCommand
 ) -> list[dict[str, str]]:
@@ -153,7 +177,7 @@ def search_knowledge_vault_machine(
                         "semantic_available": True,
                         "fallback_used": False,
                         "backend_error": None,
-                        "results": payload,
+                        "results": _normalize_semantic_results(payload),
                     }
                 backend_error = "semantic response was not a result list"
         else:

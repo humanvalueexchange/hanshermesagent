@@ -129,6 +129,7 @@ def read_link_document_chunks(
     document_id: str,
     start_chunk: int = 0,
     max_chunks: int = 10,
+    include_text: bool = True,
 ) -> dict[str, Any]:
     """Read a bounded, provenance-preserving page of document chunks."""
     document_id = document_id.strip().lower()
@@ -142,16 +143,20 @@ def read_link_document_chunks(
         safe_max = max(1, min(int(max_chunks), 10))
     except (TypeError, ValueError):
         return {"status": "invalid_pagination", "document_id": document_id}
-    completed = run_cli(
-        [
-            "document-chunks",
-            document_id,
-            "--start-chunk",
-            str(safe_start),
-            "--max-chunks",
-            str(safe_max),
+    command = [
+        "document-chunks",
+        document_id,
+        "--start-chunk",
+        str(safe_start),
+        "--max-chunks",
+        str(safe_max),
+    ]
+    if not include_text:
+        command = [
+            *command,
+            "--metadata-only",
         ]
-    )
+    completed = run_cli(command)
     if completed.returncode != 0:
         return {
             "status": "error",

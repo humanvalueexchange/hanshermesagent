@@ -106,12 +106,19 @@ class KnowledgeToolTests(unittest.TestCase):
             result = knowledge.search_knowledge_vault_machine(
                 "query",
                 5,
-                lambda cmd, timeout: (0, '[{"document_id":"0123456789abcdef"}]'),
+                lambda cmd, timeout: (
+                    0,
+                    '[{"document_id":"0123456789abcdef","text":"%s","unexpected":"drop"}]'
+                    % ("x" * 10000),
+                ),
             )
         self.assertEqual(result["retrieval_mode"], "semantic")
         self.assertTrue(result["semantic_available"])
         self.assertFalse(result["fallback_used"])
         self.assertIsNone(result["backend_error"])
+        self.assertEqual(result["results"][0]["document_id"], "0123456789abcdef")
+        self.assertNotIn("unexpected", result["results"][0])
+        self.assertLessEqual(len(result["results"][0]["excerpt"]), 320)
 
     def test_machine_result_preserves_semantic_error_on_fallback(self) -> None:
         def fake_run(cmd: list[str], timeout: int) -> tuple[int, str]:
