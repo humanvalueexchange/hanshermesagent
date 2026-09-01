@@ -11,6 +11,7 @@ from tools.proton_file_collector import (
     _validate_proton_url,
     _lock_path,
     _download_via_browser,
+    _stage_download,
     archive_proton_file,
     detect_file_type,
     process_proton_job,
@@ -242,8 +243,12 @@ class ProtonFileCollectorTests(unittest.TestCase):
                 destination.write_bytes(b"%PDF-1.7\n")
                 return "https://drive.proton.me/download/course.pdf", "application/pdf", 9
 
-            completed = process_proton_job(result["job_id"], root=root, downloader=fake_downloader)
-            again = process_proton_job(result["job_id"], root=root, downloader=fake_downloader)
+            with mock.patch(
+                "tools.proton_file_collector._run_knowledge_intake",
+                return_value=(True, None),
+            ):
+                completed = process_proton_job(result["job_id"], root=root, downloader=fake_downloader)
+                again = process_proton_job(result["job_id"], root=root, downloader=fake_downloader)
 
             self.assertEqual(completed["status"], "completed")
             self.assertEqual(again["status"], "completed")
@@ -252,6 +257,18 @@ class ProtonFileCollectorTests(unittest.TestCase):
             manifest = json.loads(Path(completed["manifest_path"]).read_text(encoding="utf-8"))
             self.assertEqual(manifest["status"], "completed")
             self.assertEqual(manifest["sha256"], completed["sha256"])
+
+    def test_proton_downloads_use_private_staging_queue(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            temporary = root / "download.part"
+            temporary.write_bytes(b"%PDF-1.7\n")
+
+            destination = _stage_download(root, temporary, "course.pdf", "pdf", "a" * 64)
+
+            self.assertEqual(destination.parent, root / "intake" / "proton")
+            self.assertFalse((root / "intake" / "inbox").exists())
+            self.assertTrue(destination.is_file())
 
     def test_browser_worker_uses_two_click_download_sequence(self) -> None:
         class Response:
@@ -373,13 +390,17 @@ class ProtonFileCollectorTests(unittest.TestCase):
                 destination.write_bytes(b"%PDF-1.7\n")
                 return "https://drive.proton.me/download/course.pdf", "application/pdf", 9
 
-            first_result = process_proton_job(first["job_id"], root=root, downloader=fake_downloader)
-            second_result = process_proton_job(second["job_id"], root=root, downloader=fake_downloader)
+            with mock.patch(
+                "tools.proton_file_collector._run_knowledge_intake",
+                return_value=(True, None),
+            ):
+                first_result = process_proton_job(first["job_id"], root=root, downloader=fake_downloader)
+                second_result = process_proton_job(second["job_id"], root=root, downloader=fake_downloader)
 
             self.assertEqual(first_result["status"], "completed")
             self.assertEqual(second_result["status"], "duplicate")
             self.assertEqual(second_result["duplicate_of"], first["job_id"])
-            self.assertEqual(len(list((root / "intake" / "inbox").glob("*"))), 1)
+            self.assertEqual(len(list((root / "intake" / "proton").glob("*"))), 1)
 
     def test_failed_worker_cleans_partial_download_and_marks_terminal(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

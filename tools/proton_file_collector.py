@@ -27,6 +27,7 @@ from tools.link_collector import (
     canonicalize_url,
     websocket_connect,
 )
+from tools.knowledge_layer_client import cli_command, cli_environment
 
 
 KNOWLEDGE_ROOT = Path("/hve-library")
@@ -848,12 +849,12 @@ def _stage_download(
     file_type: str,
     digest: str,
 ) -> Path:
-    inbox = root / "intake" / "inbox"
-    inbox.mkdir(parents=True, exist_ok=True)
-    destination = inbox / _safe_filename(filename or f"proton-{digest}", file_type)
+    staging_dir = root / "intake" / "proton"
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    destination = staging_dir / _safe_filename(filename or f"proton-{digest}", file_type)
     if destination.exists():
-        destination = inbox / f"{destination.stem}-{digest[:16]}.{file_type}"
-    staged = inbox / f".{destination.name}.{secrets.token_hex(6)}.part"
+        destination = staging_dir / f"{destination.stem}-{digest[:16]}.{file_type}"
+    staged = staging_dir / f".{destination.name}.{secrets.token_hex(6)}.part"
     try:
         with temporary_path.open("rb") as source, staged.open("wb") as target:
             shutil.copyfileobj(source, target, DOWNLOAD_CHUNK_SIZE)
@@ -863,6 +864,26 @@ def _stage_download(
         return destination
     finally:
         staged.unlink(missing_ok=True)
+
+
+def _run_knowledge_intake(root: Path, pdf_path: Path) -> tuple[bool, str | None]:
+    try:
+        result = subprocess.run(
+            cli_command("intake", "--pdf", str(pdf_path), root=root),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=LOCK_TIMEOUT,
+            env=cli_environment(),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return False, f"{type(exc).__name__}: knowledge-layer intake failed"
+    output = (result.stdout or "").strip()
+    if output:
+        print(output)
+    if result.returncode != 0:
+        return False, (result.stderr or "").strip() or "Knowledge-layer intake failed"
+    return True, None
 
 
 def process_proton_job(
@@ -979,6 +1000,16 @@ def process_proton_job(
                 manifest_path=str(manifest_path),
                 worker_pid=None,
             )
+            indexed, intake_error = _run_knowledge_intake(root, destination)
+            if not indexed:
+                _job_update(
+                    root,
+                    job,
+                    processing_status="failed",
+                    error=intake_error or "Knowledge-layer intake failed",
+                )
+            else:
+                _job_update(root, job, processing_status="completed", error=None)
             _cancel_path(root, job_id).unlink(missing_ok=True)
             return _record_result({**job, **manifest}, status="completed")
         except Exception as exc:
