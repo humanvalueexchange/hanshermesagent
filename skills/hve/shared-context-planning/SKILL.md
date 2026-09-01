@@ -53,3 +53,8 @@ Planning is read-only. Do not append ledger events, annotate records, archive
 documents, ingest sources, or mutate `/hve-library`. Recommendations and
 clarification answers do not become decisions without explicit Hans adoption
 through the decision-ledger workflow.
+
+Do not use `execute_code`, filesystem reads, shell commands, or SQL to recover
+knowledge-layer metadata. If the MCP response lacks required provenance,
+validation, or continuation fields, report the boundary as incomplete instead
+of bypassing it.

@@ -100,17 +100,25 @@ def read_link_document(document_id: str, max_chars: int = 12000) -> dict[str, An
     return {
         "status": "ok",
         "document_id": document_id,
+        "sha256": manifest.get("sha256"),
         "title": manifest.get("title"),
+        "source_path": manifest.get("source_path"),
+        "manifest_path": manifest.get("_manifest_path"),
+        "chunk_count": manifest.get("chunk_count", 0),
         "video_id": manifest.get("video_id"),
         "canonical_url": manifest.get("canonical_url"),
         "capture_context": [item.get("capture_context") for item in manifest.get("captures", [])],
         "captured_at": manifest.get("captured_at"),
-        "indexed": manifest.get("status") == "indexed",
+        "indexed": (
+            manifest.get("status") == "indexed"
+            or manifest.get("index_status") == "completed"
+        ),
         "transcript_status": manifest.get("transcript_status"),
         "transcript_path": manifest.get("transcript_path"),
         "annotations": read_annotations(document_id),
         "text": text[:safe_max_chars],
         "truncated": payload["truncated"],
+        "validation_status": "validated",
     }
 
 
