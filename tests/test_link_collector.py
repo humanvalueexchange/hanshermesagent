@@ -210,6 +210,45 @@ class LinkCollectorTests(unittest.TestCase):
         self.assertFalse(result["indexed"])
         indexer.assert_not_called()
 
+    def test_index_link_chunks_parses_compact_cli_success(self) -> None:
+        completed = mock.Mock(
+            returncode=0,
+            stdout='{"indexed":true,"status":"indexed","table":"library_chunks"}\n',
+            stderr="",
+        )
+        with (
+            mock.patch("pathlib.Path.is_file", return_value=True),
+            mock.patch("pathlib.Path.exists", return_value=True),
+            mock.patch("tools.link_collector.subprocess.run", return_value=completed) as run,
+        ):
+            result = link_collector.index_link_chunks(
+                self.root,
+                self.root / "chunks.jsonl",
+                self.root / "manifest.json",
+            )
+
+        self.assertTrue(result["indexed"])
+        self.assertIn("--json", run.call_args.args[0])
+
+    def test_index_link_chunks_preserves_cli_failure(self) -> None:
+        completed = mock.Mock(
+            returncode=1,
+            stdout='{"indexed":false,"status":"failed","error":"library busy"}\n',
+            stderr="",
+        )
+        with (
+            mock.patch("pathlib.Path.is_file", return_value=True),
+            mock.patch("pathlib.Path.exists", return_value=True),
+            mock.patch("tools.link_collector.subprocess.run", return_value=completed),
+        ):
+            result = link_collector.index_link_chunks(
+                self.root,
+                self.root / "chunks.jsonl",
+                self.root / "manifest.json",
+            )
+
+        self.assertEqual(result, {"indexed": False, "status": "failed", "error": "library busy"})
+
     def test_detects_youtube_url_forms(self) -> None:
         video_id = "dQw4w9WgXcQ"
         for url in (

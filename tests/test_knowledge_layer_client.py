@@ -27,3 +27,16 @@ class KnowledgeLayerClientTests(unittest.TestCase):
             "/opt/hve-knowledge-layer/current/config/knowledge-layer/knowledge-layer.yaml",
         )
         self.assertEqual(environment.get("PATH"), os.environ.get("PATH"))
+
+    def test_cli_command_can_request_machine_readable_output(self) -> None:
+        command = knowledge_layer_client.cli_command(
+            "--json",
+            "index",
+            "--chunk-file",
+            "/tmp/chunks.jsonl",
+            "--manifest",
+            "/tmp/manifest.json",
+            root=Path("/tmp/test-library"),
+        )
+
+        self.assertIn("--json", command)

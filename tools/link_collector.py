@@ -640,6 +640,7 @@ def index_link_chunks(root: Path, chunk_path: Path, manifest_path: Path) -> dict
     try:
         result = subprocess.run(
             cli_command(
+                "--json",
                 "index",
                 "--chunk-file",
                 str(chunk_path),
