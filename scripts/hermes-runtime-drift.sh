@@ -7,7 +7,6 @@ ACTIVE_PROFILE="$(cat "$HOME/.hermes/active_profile" 2>/dev/null || printf 'main
 PROFILE="${HERMES_PROFILE:-$HOME/.hermes/profiles/$ACTIVE_PROFILE}"
 CODER_PROFILE="${HERMES_CODER_PROFILE:-$HOME/.hermes/profiles/hermes-coder}"
 ENV_FILE="${HERMES_ENV_FILE:-$HOME/.hermes-mcp.env}"
-HONCHO_ENV_FILE="${HONCHO_ENV_FILE:-$HOME/honcho/.env}"
 UNIT_DIR="${HERMES_UNIT_DIR:-$HOME/.config/systemd/user}"
 if [[ "$PROFILE" != /* ]]; then
   PROFILE="$HOME/.hermes/profiles/$PROFILE"
@@ -48,23 +47,7 @@ else
   source "$ENV_FILE"
   set +a
   [[ -n "${HVE_MCP_API_KEY:-}" ]] && pass "HVE_MCP_API_KEY is configured" || fail "HVE_MCP_API_KEY is empty"
-  [[ -f "$HONCHO_ENV_FILE" ]] && \
-    source "$HONCHO_ENV_FILE"
-  [[ "${DERIVER_MODEL_CONFIG__MODEL:-}" == "qwen3.8-distill-2b:q4_k_m" ]] \
-    && pass "Honcho deriver model uses the canonical 2B model" \
-    || fail "Honcho deriver model is not the canonical 2B model"
-  [[ "${SUMMARY_MODEL_CONFIG__MODEL:-}" == "qwen3.8-distill-2b:q4_k_m" ]] \
-    && pass "Honcho summary model uses the canonical 2B model" \
-    || fail "Honcho summary model is not the canonical 2B model"
-  dialectic_ok=true
-  for level in minimal low medium high max; do
-    if ! grep -q "^DIALECTIC_LEVELS__${level}__MODEL_CONFIG__MODEL=qwen3.8-hermes:27b-128k$" "$HONCHO_ENV_FILE"; then
-      dialectic_ok=false
-    fi
-  done
-  [[ "$dialectic_ok" == true ]] \
-    && pass "Honcho dialectic levels use the bounded Qwen3.8 primary model" \
-    || fail "Honcho dialectic levels contain a non-canonical model"
+  pass "Honcho runtime checks skipped: local-sqlite-memory is the approved provider"
 fi
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -104,7 +87,7 @@ checks = [
     (coder.get("model", {}).get("context_length") == expected_contexts[primary], "Hermes-coder context length"),
     (coder_provider.get("default_model") == primary, "Hermes-coder provider default model"),
     (set(coder_provider.get("models") or []) == expected_models, "Hermes-coder model catalog"),
-    (live.get("memory", {}).get("provider") == "honcho", "Honcho memory provider"),
+    (live.get("memory", {}).get("provider") == "local-sqlite-memory", "local SQLite memory provider"),
     (live.get("security", {}).get("allow_private_urls") is False, "private URL protection"),
     (live.get("security", {}).get("tirith_fail_open") is False, "Tirith fail-closed mode"),
 ]

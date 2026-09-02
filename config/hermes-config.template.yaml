@@ -294,13 +294,13 @@ memory:
   memory_char_limit: 2200
   memory_enabled: true
   nudge_interval: 10
-  provider: honcho
+  provider: local-sqlite-memory
   user_char_limit: 1375
   user_profile_enabled: true
 model:
-  context_length: 131072
+  context_length: 65536
   default: qwen3.8-hermes:27b-128k
-  ollama_num_ctx: 131072
+  ollama_num_ctx: 65536
   provider: ollama
 model_catalog:
   enabled: true

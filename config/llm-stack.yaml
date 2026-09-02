@@ -7,8 +7,8 @@ profile: hanshermesagent
 resident:
   primary:
     model: qwen3.8-hermes:27b-128k
-    context: 131072
-    ollama_num_ctx: 131072
+    context: 65536
+    ollama_num_ctx: 65536
     purpose: reasoning, routing, tool use, and final judgment
     think: true
     keep_alive: -1

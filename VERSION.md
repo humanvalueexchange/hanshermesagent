@@ -8,7 +8,7 @@
 | Component | Version | Updated | Notes |
 |---|---|---|---|
 | **hermes-agent** | `0.15.2` | 2026-05-30 | v2026.5.29.2 tag — confirmed on 0.15.2 |
-| **qwen3.8-hermes:27b-128k** | Ollama local | 2026-08-22 | Hard-capped primary reasoning/orchestration and tool use — 131K context |
+| **qwen3.8-hermes:27b-128k** | Ollama local | 2026-09-01 | Hard-capped primary reasoning/orchestration and tool use — 65K context |
 | **qwen3.8-distill-2b:q4_k_m** | Ollama local | 2026-08-22 | Lightweight derivation — 32K context |
 | **nomic-embed-text-v1.5** | Ollama local (`nomic-embed-text:latest` request alias) | 2026-08-25 | Knowledge embeddings — 768 dimensions; LanceDB contract aligned |
 | **Open WebUI** | running | 2026-05-29 | Debug console only |
