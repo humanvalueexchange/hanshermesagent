@@ -7,7 +7,7 @@
 
 | Component | Version | Updated | Notes |
 |---|---|---|---|
-| **hermes-agent** | `0.15.2` | 2026-05-30 | v2026.5.29.2 tag — confirmed on 0.15.2 |
+| **hermes-agent** | `0.21.0` | 2026-09-01 | v2026.8.31 — confirmed after `hermes update` |
 | **qwen3.8-hermes:27b-128k** | Ollama local | 2026-09-01 | Hard-capped primary reasoning/orchestration and tool use — 65K context |
 | **qwen3.8-distill-2b:q4_k_m** | Ollama local | 2026-08-22 | Lightweight derivation — 32K context |
 | **nomic-embed-text-v1.5** | Ollama local (`nomic-embed-text:latest` request alias) | 2026-08-25 | Knowledge embeddings — 768 dimensions; LanceDB contract aligned |
@@ -36,6 +36,7 @@
 
 | Date | From | To | Upgraded By | Notes |
 |---|---|---|---|---|
+| 2026-09-01 | `0.20.6` | `0.21.0` | Hans / Hermes update | Updated live Git installation; post-update doctor and runtime smoke checks passed |
 | 2026-08-25 | `nomic-embed-text` contract alias | `nomic-embed-text-v1.5` canonical contract | Hermes-coder | Fixed Telegram LanceDB compatibility rejection; no index rebuild required |
 | 2026-08-19 | Transformers/Hugging Face | Ollama `/api/embed` | Hermes-coder | Local 768-dim embeddings; full LanceDB reindex completed |
 | 2026-05-30 | qwen3.5:27b | qwen3.5:9b | Claude (CTO) | Performance: 27b was over-provisioned for conductor role; 9b 6.6 GB vs 17 GB, same quality, frees 10 GB headroom |
