@@ -73,18 +73,19 @@ manifest = yaml.safe_load(Path(sys.argv[4]).read_text())
 resident = manifest["resident"]
 expected_models = {entry["model"] for entry in resident.values()}
 primary = resident["primary"]["model"]
-expected_contexts = {entry["model"]: entry["context"] for entry in resident.values()}
+primary_context = resident["primary"]["context"]
+coding_context = resident["coding_fallback"]["context"]
 provider_config = next(iter((live.get("providers") or {}).values()), {})
 coder_provider = next(iter((coder.get("providers") or {}).values()), {})
 
 checks = [
     (live.get("model", {}).get("default") == primary, "primary model"),
-    (live.get("model", {}).get("context_length") == expected_contexts[primary], "primary context length"),
-    (live.get("model", {}).get("ollama_num_ctx") == expected_contexts[primary], "primary Ollama context override"),
+    (live.get("model", {}).get("context_length") == primary_context, "primary context length"),
+    (live.get("model", {}).get("ollama_num_ctx") == primary_context, "primary Ollama context override"),
     (provider_config.get("default_model") == primary, "provider default model"),
     (set(provider_config.get("models") or []) == expected_models, "approved Ollama model catalog"),
     (coder.get("model", {}).get("default") == primary, "Hermes-coder primary model"),
-    (coder.get("model", {}).get("context_length") == expected_contexts[primary], "Hermes-coder context length"),
+    (coder.get("model", {}).get("context_length") == coding_context, "Hermes-coder context length"),
     (coder_provider.get("default_model") == primary, "Hermes-coder provider default model"),
     (set(coder_provider.get("models") or []) == expected_models, "Hermes-coder model catalog"),
     (live.get("memory", {}).get("provider") == "local-sqlite-memory", "local SQLite memory provider"),
