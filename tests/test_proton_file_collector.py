@@ -256,7 +256,34 @@ class ProtonFileCollectorTests(unittest.TestCase):
             self.assertTrue(Path(completed["source_path"]).is_file())
             manifest = json.loads(Path(completed["manifest_path"]).read_text(encoding="utf-8"))
             self.assertEqual(manifest["status"], "completed")
+            self.assertEqual(manifest["processing_status"], "completed")
             self.assertEqual(manifest["sha256"], completed["sha256"])
+
+    def test_marks_manifest_processing_failed_when_intake_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            queued = archive_proton_file("https://drive.proton.me/urls/failed-intake#key", root=root)
+
+            def fake_downloader(_url: str, destination: Path):
+                destination.write_bytes(b"%PDF-1.7\n")
+                return "https://drive.proton.me/download/course.pdf", "application/pdf", 9
+
+            with mock.patch(
+                "tools.proton_file_collector._run_knowledge_intake",
+                return_value=(False, "indexing failed"),
+            ):
+                completed = process_proton_job(
+                    queued["job_id"],
+                    root=root,
+                    downloader=fake_downloader,
+                )
+
+            self.assertEqual(completed["status"], "completed")
+            manifest = json.loads(Path(completed["manifest_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(manifest["processing_status"], "failed")
+            job = json.loads(Path(queued["job_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(job["status"], "completed")
+            self.assertEqual(job["processing_status"], "failed")
 
     def test_proton_downloads_use_private_staging_queue(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

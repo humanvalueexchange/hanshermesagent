@@ -1001,6 +1001,11 @@ def process_proton_job(
                 worker_pid=None,
             )
             indexed, intake_error = _run_knowledge_intake(root, destination)
+            manifest = _load_json(manifest_path)
+            if manifest is None:
+                raise ProtonFileCollectorError("Knowledge-layer intake removed the document manifest")
+            manifest["processing_status"] = "completed" if indexed else "failed"
+            _atomic_write_json(manifest_path, manifest)
             if not indexed:
                 _job_update(
                     root,
