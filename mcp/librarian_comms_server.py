@@ -1,4 +1,4 @@
-#!/home/hans/.hermes/hermes-agent/venv/bin/python
+#!/home/hans/.hermes-mcp-venv/bin/python
 
 from __future__ import annotations
 

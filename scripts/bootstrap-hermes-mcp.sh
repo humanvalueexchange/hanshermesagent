@@ -7,6 +7,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_DIR="${HOME}/.hermes-mcp-venv"
+MCP_PROJECT_DIR="${REPO_DIR}/mcp"
 SERVICE_SRC="${REPO_DIR}/dotfiles/hermes-mcp.service"
 SERVICE_DEST="${HOME}/.config/systemd/user/hermes-mcp.service"
 ENV_FILE="${HOME}/.hermes-mcp.env"
@@ -16,10 +17,15 @@ echo "== HVE Hermes MCP Server Bootstrap =="
 
 # ── 1. Python venv via uv ────────────────────────────────────────────────────
 echo "→ Creating Python venv at ${VENV_DIR}"
-uv venv "${VENV_DIR}" --python 3.12 --seed
-uv pip install --python "${VENV_DIR}/bin/python" \
-  "mcp[cli]>=1.0" \
-  "websockets==15.0.1"
+if [ ! -x "${VENV_DIR}/bin/python" ]; then
+    uv venv "${VENV_DIR}" --python 3.12 --seed
+fi
+(
+    cd "${MCP_PROJECT_DIR}"
+    uv lock --check
+    uv pip sync --python "${VENV_DIR}/bin/python" \
+        <(uv export --frozen --format requirements-txt --no-dev)
+)
 echo "  venv ready."
 
 # ── 2. Ensure log dirs exist ─────────────────────────────────────────────────
