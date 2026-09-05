@@ -490,6 +490,23 @@ toolsets:
 - hermes-cli
 - web
 mcp_servers:
+  hve-team-tasking-pilot:
+    command: /home/hans/.hermes-mcp-venv/bin/python
+    args:
+    - /home/hans/hanshermesagent/mcp/team_tasking_pilot_server.py
+    enabled: true
+    tool_filter:
+    - normalize_task
+    - approve_task
+    - starting
+    - blocked
+    - retry
+    - deliver_artifact
+    - report_done
+    - validate_task
+    - record_failure
+    - task_status_digest
+    - task_audit_trail
   hve-shared-context:
     command: /opt/hve-shared-context/current/.venv/bin/python
     args:

@@ -61,6 +61,7 @@ expected_config = {
         "hve-link-collector",
         "hve-link-library",
         "hve-decision-ledger",
+        "hve-team-tasking-pilot",
     ),
     librarian_config: ("hve-link-collector", "hve-librarian-communications"),
 }
@@ -80,6 +81,9 @@ servers = [
       "annotate_record", "list_record_annotations", "list_recent_links"}),
     ("decision-ledger", Path("/home/hans/hanshermesagent/mcp/decision_log_server.py"),
      {"append_decision_events", "list_decision_events", "list_ledger_handoff_candidates"}),
+    ("team-tasking-pilot", Path("/home/hans/hanshermesagent/mcp/team_tasking_pilot_server.py"),
+     {"normalize_task", "approve_task", "starting", "blocked", "retry", "deliver_artifact",
+      "report_done", "validate_task", "record_failure", "task_status_digest", "task_audit_trail"}),
     ("coder-dispatch", Path("/home/hans/.hermes/profiles/hermes-coder/dispatch_mcp.py"),
      {"coder_enqueue", "coder_status"}),
     ("librarian-comms", Path("/home/hans/hanshermesagent/mcp/librarian_comms_server.py"),
