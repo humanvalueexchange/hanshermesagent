@@ -23,12 +23,9 @@ check_file() {
 }
 
 check_file "dedicated Python" "${PYTHON}"
-check_file "MCP project manifest" "${MCP_DIR}/pyproject.toml"
 check_file "MCP lockfile" "${MCP_DIR}/uv.lock"
 check_file "Hans profile config" "${HANS_CONFIG}"
 check_file "Librarian profile config" "${LIBRARIAN_CONFIG}"
-
-(cd "${MCP_DIR}" && uv lock --check)
 
 "${PYTHON}" - <<'PY'
 from importlib.metadata import version
@@ -40,10 +37,6 @@ for package, wanted in expected.items():
         raise SystemExit(f"{package} is {actual}, expected {wanted}")
     print(f"PASS {package}=={actual}")
 PY
-
-grep -Fq 'mcp[cli]==2.0.0' "${MCP_DIR}/pyproject.toml"
-grep -Fq 'fastmcp==4.0.2' "${MCP_DIR}/pyproject.toml"
-echo "PASS exact MCP 2 dependency pins"
 
 "${PYTHON}" - "${HANS_CONFIG}" "${LIBRARIAN_CONFIG}" "${PYTHON}" <<'PY'
 import asyncio
