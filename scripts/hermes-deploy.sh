@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# hermes-deploy.sh — Deploy config/SOUL changes from hanshermesagent to live Hermes runtime
+# hermes-deploy.sh — Deploy Hans Chief-of-Staff profile from its canonical source
 # Safe to run at any time — idempotent. No service restart unless changes detected.
 set -euo pipefail
 
@@ -13,9 +13,10 @@ SKILLS_DIR="$REPO_ROOT/skills/hve"
 MEMORY_PLUGIN_SOURCE="$REPO_ROOT/plugins/local-sqlite-memory"
 MEMORY_PLUGIN_DEST="$HERMES_PROFILE/plugins/local-sqlite-memory"
 DRIFT_CHECK="$REPO_ROOT/scripts/hermes-runtime-drift.sh"
+PROFILE_VALIDATE="$REPO_ROOT/deploy/validate-profile.sh"
 
 echo "╔══════════════════════════════════════════════════╗"
-echo "║       Hermes CFO — Deploy                        ║"
+echo "║       Hans Hermes Chief of Staff — Deploy        ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
@@ -24,10 +25,12 @@ if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
   echo "ERROR: repository worktree is dirty. Commit or discard changes before deployment."
   exit 1
 fi
+"$PROFILE_VALIDATE" hanshermesagent
 echo "→ Pulling latest from hanshermesagent repo..."
 cd "$REPO_ROOT"
 OLD_HEAD=$(git rev-parse HEAD)
 git pull --rebase origin main
+"$PROFILE_VALIDATE" hanshermesagent
 echo ""
 
 # ── 2. Load secrets ───────────────────────────────────────────────────────────
