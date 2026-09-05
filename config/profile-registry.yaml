@@ -1,0 +1,67 @@
+version: 1
+
+channel_owners:
+  whatsapp: hanshermesagent
+  telegram: hve-librarian
+
+retired_profiles:
+  - hanshermesagentcollector
+
+profiles:
+  - id: hanshermesagent
+    repository: /home/hans/hanshermesagent
+    metadata: PROFILE.yaml
+    live_profile_path: /home/hans/.hermes/profiles/hanshermesagent
+    role: chief-of-staff
+    primary_channel: whatsapp
+    disabled_channels:
+      - telegram
+    gateway_service: hermes-gateway-hanshermesagent.service
+    status: active
+
+  - id: hve-librarian
+    repository: /home/hans/hve-librarian
+    metadata: PROFILE.yaml
+    live_profile_path: /home/hans/.hermes/profiles/hve-librarian
+    role: knowledge-steward
+    primary_channel: telegram
+    disabled_channels:
+      - whatsapp
+    gateway_service: hermes-gateway-hve-librarian.service
+    status: active
+
+  - id: hve-alpha
+    repository: /home/hans/profile-repos/hve-alpha
+    metadata: PROFILE.yaml
+    live_profile_path: /home/hans/.hermes/profiles/hve-alpha
+    role: standby
+    primary_channel: none
+    disabled_channels:
+      - whatsapp
+      - telegram
+    gateway_service: null
+    status: standby
+
+  - id: hve-cfo
+    repository: /home/hans/profile-repos/hve-cfo
+    metadata: PROFILE.yaml
+    live_profile_path: /home/hans/.hermes/profiles/hve-cfo
+    role: cfo
+    primary_channel: desktop
+    disabled_channels:
+      - whatsapp
+      - telegram
+    gateway_service: null
+    status: active
+
+  - id: hermes-coder
+    repository: /home/hans/profile-repos/hermes-coder
+    metadata: PROFILE.yaml
+    live_profile_path: /home/hans/.hermes/profiles/hermes-coder
+    role: coding-agent
+    primary_channel: none
+    disabled_channels:
+      - whatsapp
+      - telegram
+    gateway_service: hermes-coder-worker.service
+    status: active
