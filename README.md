@@ -1,12 +1,12 @@
-# Hermes - Sovereign AI CFO and Knowledge Agent
+# Hermes - Chief of Staff and Knowledge Agent
 
-Hermes is Human Value Exchange's local AI operating system for CFO work,
-treasury intelligence, agent coordination, and durable knowledge capture. It
-runs on the NVIDIA DGX Spark and is operated as a local-first, systemd-managed
-service stack.
+Hermes is Human Value Exchange's local Chief of Staff profile for agent
+coordination, continuity, decision preparation, and durable knowledge capture.
+It runs on the NVIDIA DGX Spark and is operated as a local-first,
+systemd-managed service stack.
 
 **Runtime:** DGX OS / Ubuntu 24.04-based, ARM64, 128 GB unified memory
-**Primary gateway:** `hanshermesagent` Telegram channel
+**Primary gateway:** `hanshermesagent` WhatsApp channel
 **Repository:** `humanvalueexchange/hanshermesagent`
 
 ## Current model configuration
@@ -41,7 +41,7 @@ inconsistent vectors. There is no cloud fallback.
 
 | Service | Role |
 |---|---|
-| `hermes-gateway-hanshermesagent.service` | Telegram-facing Hermes gateway |
+| `hermes-gateway-hanshermesagent.service` | WhatsApp-facing Hermes gateway |
 | `hermes-mcp.service` | Local MCP server on port `8765` |
 | `hermes-telegram-log.service` | Telegram audit/log watcher |
 | `hermes-browser.service` | Persistent browser session for Hermes tools |

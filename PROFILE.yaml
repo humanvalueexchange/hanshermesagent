@@ -1,0 +1,15 @@
+profile_id: hanshermesagent
+role: chief-of-staff
+display_name: Hermes Chief of Staff
+channel_ownership:
+  primary: whatsapp
+  disabled:
+    - telegram
+gateway:
+  service: hermes-gateway-hanshermesagent.service
+  command_profile: hanshermesagent
+live_profile_path: /home/hans/.hermes/profiles/hanshermesagent
+deployable_identity: dotfiles/SOUL.md
+forbidden_identity_markers:
+  - "# Hermes — CFO"
+  - "You are **Hermes**, the Chief Financial Officer"
