@@ -1,7 +1,7 @@
 # HVE Team Tasking — Phase 0 Private Pilot
 
 **Date:** 2026-09-05  
-**Status:** Implemented; awaiting Hans's personal validation  
+**Status:** Implemented; Phase 0 UAT not yet passed
 **Scope:** Hans's personal WhatsApp DM only
 
 ## Isolated backend decision
@@ -82,17 +82,9 @@ credential content. It may be classified in the private pilot, but its card
 must show `blocked_by_sensitivity_gate` for any future public repository
 adapter. Do not test AL-01 or send any group message.
 
-## UAT findings and operating skills
+## Operating skills
 
-The first live UAT reached `awaiting_validation` successfully, but exposed
-four model-operation failure modes: raw text was passed where Base64 was
-required, a generic tool wrapper was attempted without a tool name, a
-transition was attempted without `task_id`, and a stored artifact was treated
-as readable text without checking its type. The pilot backend rejected the
-invalid calls without changing state, and the later confirmed delivery was
-recorded with its hash.
-
-The repository now provides three companion skills:
+The repository provides three companion skills:
 
 - `team-tasking-mcp-discipline` — exact named-tool calls, complete arguments,
   stable task IDs, and confirmed-response handling.
@@ -100,3 +92,8 @@ The repository now provides three companion skills:
   private artifact handling, and binary-file boundaries.
 - `team-tasking-lifecycle` — valid state transitions, explicit Hans gates, and
   deterministic recovery.
+
+Live UAT evidence is runtime-local and must not be committed to GitHub. The
+Phase 0 gate remains closed until one clean personal-DM run completes without
+manual recovery, path correction, duplicate intervention, or ambiguous
+success reporting.
