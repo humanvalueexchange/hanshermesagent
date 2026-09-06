@@ -271,6 +271,12 @@ class PilotStore:
         return self._task_result(row, "preview_ready")
 
     def approve(self, task_id: str, *, approval_message_id: str, actor: str = "Hans") -> dict[str, Any]:
+        current = self._get(task_id)
+        if (
+            current["state"] == "open"
+            and current["pending_action"] == "create GitHub tracking record"
+        ):
+            return self._task_result(current, "retry_external")
         return self._transition(
             task_id, event_key=f"{approval_message_id}:approve", source_message=approval_message_id,
             actor=actor, requested="approve_task", allowed={"draft"}, new_state="open",
@@ -493,6 +499,7 @@ class PilotStore:
                 "duplicate_preview",
                 "transition_confirmed",
                 "duplicate_transition",
+                "retry_external",
                 *DELIVERY_CONFIRMED_STATUSES,
             },
             "task_id": row["task_id"], "state": row["state"], "owner": row["owner"],

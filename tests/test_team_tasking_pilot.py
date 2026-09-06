@@ -222,6 +222,23 @@ class TeamTaskingPilotTests(unittest.TestCase):
         recovered = self.store.retry(self.task_id, source_message="retry", event_id="f-retry")
         self.assertEqual(recovered["state"], "in_progress")
 
+    def test_github_tracking_failure_can_be_retried_after_approval(self) -> None:
+        self.store.approve(self.task_id, approval_message_id="wa-approve-github-retry")
+        self.store.failure(
+            self.task_id,
+            action="create GitHub tracking record",
+            error="Project field update failed",
+            source_message="approval",
+            event_id="github-failure",
+        )
+        retry = self.store.approve(
+            self.task_id,
+            approval_message_id="wa-approve-github-retry",
+        )
+        self.assertEqual(retry["status"], "retry_external")
+        self.assertTrue(retry["confirmed"])
+        self.assertEqual(retry["state"], "open")
+
     def test_digest_groups_ownership_and_due_dates(self) -> None:
         digest = self.store.digest()
         self.assertEqual(digest["counts"]["draft"], 1)
