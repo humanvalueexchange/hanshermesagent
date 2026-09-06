@@ -81,12 +81,23 @@ def classify_sensitivity(values: list[str]) -> str:
 class PilotStore:
     """Transactional local backend with append-only task events."""
 
-    def __init__(self, db_path: str | Path, artifact_root: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        db_path: str | Path,
+        artifact_root: str | Path | None = None,
+        *,
+        task_prefix: str = "P0",
+        backend_name: str = "private-phase-0-local",
+        public_repository: str = "not_configured_private_phase_0",
+    ) -> None:
         self.db_path = Path(db_path).expanduser()
         self.artifact_root = Path(
             artifact_root
             or self.db_path.parent / "team-tasking-pilot-artifacts"
         ).expanduser()
+        self.task_prefix = task_prefix
+        self.backend_name = backend_name
+        self.public_repository = public_repository
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.artifact_root.mkdir(parents=True, exist_ok=True)
         self._initialize()
@@ -204,9 +215,10 @@ class PilotStore:
         criteria = [str(item).strip() for item in criteria]
         risk_values = [str(item).strip() for item in (risks or []) if str(item).strip()]
         sensitivity = classify_sensitivity([source, deliverable_value, *criteria, *risk_values])
-        task_id = f"P0-{hashlib.sha256(message_id.encode()).hexdigest()[:12].upper()}"
+        task_id = f"{self.task_prefix}-{hashlib.sha256(message_id.encode()).hexdigest()[:12].upper()}"
         card = {
             "task_id": task_id,
+            "source_message": source,
             "title": deliverable_value,
             "owner": owner_value,
             "deliverable": deliverable_value,
@@ -218,10 +230,10 @@ class PilotStore:
             "public_repository": (
                 "blocked_by_sensitivity_gate"
                 if sensitivity != "public"
-                else "not_configured_private_phase_0"
+                else self.public_repository
             ),
             "initial_state": "open",
-            "backend": "private-phase-0-local",
+            "backend": self.backend_name,
         }
         team_message = (
             f"[PILOT DRAFT] {task_id} — {deliverable_value}\n"

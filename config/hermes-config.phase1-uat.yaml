@@ -1,0 +1,532 @@
+# Phase 0 clean UAT profile config. Generated from hermes-config.template.yaml; keep model context at 64K.
+_config_version: 23
+agent:
+  api_max_retries: 3
+  disabled_toolsets:
+  - browser
+  - code_execution
+  - computer_use
+  - cronjob
+  - delegation
+  - terminal
+  - web
+  gateway_auto_continue_freshness: 3600
+  gateway_notify_interval: 180
+  gateway_timeout: 600
+  gateway_timeout_warning: 300
+  image_input_mode: auto
+  max_turns: 30
+  personalities:
+    catgirl: You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and
+      cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ.
+      Be playful and curious like a cat, nya~!
+    concise: You are a concise assistant. Keep responses brief and to the point.
+    creative: You are a creative assistant. Think outside the box and offer innovative
+      solutions.
+    helpful: You are a helpful, friendly AI assistant.
+    hype: YOOO LET'S GOOOO!!! 🔥🔥🔥 I am SO PUMPED to help you today! Every question
+      is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE
+      YOU READY?! LET'S DO THIS! 💪😤🚀
+    kawaii: You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and
+      ~! Add sparkles and be super enthusiastic about everything! Every response should
+      feel warm and adorable desu~! ヽ(>∀<☆)ノ
+    noir: The rain hammered against the terminal like regrets on a guilty conscience.
+      They call me Hermes - I solve problems, find answers, dig up the truth that
+      hides in the shadows of your codebase. In this city of silicon and secrets,
+      everyone's got something to hide. What's your story, pal?
+    philosopher: Greetings, seeker of wisdom. I am an assistant who contemplates the
+      deeper meaning behind every query. Let us examine not just the 'how' but the
+      'why' of your questions. Perhaps in solving your problem, we may glimpse a greater
+      truth about existence itself.
+    pirate: 'Arrr! Ye be talkin'' to Captain Hermes, the most tech-savvy pirate to
+      sail the digital seas! Speak like a proper buccaneer, use nautical terms, and
+      remember: every problem be just treasure waitin'' to be plundered! Yo ho ho!'
+    shakespeare: Hark! Thou speakest with an assistant most versed in the bardic arts.
+      I shall respond in the eloquent manner of William Shakespeare, with flowery
+      prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder
+      terminal breaks?
+    surfer: Duuude! You're chatting with the chillest AI on the web, bro! Everything's
+      gonna be totally rad. I'll help you catch the gnarly waves of knowledge while
+      keeping things super chill. Cowabunga! 🤙
+    teacher: You are a patient teacher. Explain concepts clearly with examples.
+    technical: You are a technical expert. Provide detailed, accurate technical information.
+    uwu: hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles
+      your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful
+      >w<
+  reasoning_effort: low
+  restart_drain_timeout: 60
+  service_tier: ''
+  tool_use_enforcement: true
+  verbose: false
+approvals:
+  cron_mode: deny
+  destructive_slash_confirm: true
+  mcp_reload_confirm: true
+  mode: smart
+  timeout: 60
+auxiliary:
+  approval:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    model: ''
+    provider: auto
+    timeout: 30
+  compression:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    model: qwen3.8-distill-2b:q4_k_m
+    provider: auto
+    timeout: 120
+  curator:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    model: ''
+    provider: auto
+    timeout: 600
+  mcp:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    model: ''
+    provider: auto
+    timeout: 30
+  session_search:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    max_concurrency: 3
+    model: ''
+    provider: auto
+    timeout: 30
+  skills_hub:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    model: ''
+    provider: auto
+    timeout: 30
+  title_generation:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    model: ''
+    provider: auto
+    timeout: 30
+  triage_specifier:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    model: ''
+    provider: auto
+    timeout: 120
+  vision:
+    api_key: ''
+    base_url: ''
+    download_timeout: 30
+    extra_body: {}
+    model: ''
+    provider: auto
+    timeout: 120
+  web_extract:
+    api_key: ''
+    base_url: ''
+    extra_body: {}
+    model: ''
+    provider: auto
+    timeout: 360
+bedrock:
+  discovery:
+    enabled: true
+    provider_filter: []
+    refresh_interval: 3600
+  guardrail:
+    guardrail_identifier: ''
+    guardrail_version: ''
+    stream_processing_mode: async
+    trace: disabled
+  region: ''
+browser:
+  allow_private_urls: false
+  auto_local_for_private_urls: true
+  camofox:
+    managed_persistence: false
+  cdp_url: ''
+  cloud_provider: local
+  command_timeout: 30
+  dialog_policy: must_respond
+  dialog_timeout_s: 300
+  engine: auto
+  inactivity_timeout: 120
+  record_sessions: false
+  use_gateway: false
+checkpoints:
+  auto_prune: false
+  delete_orphans: true
+  enabled: true
+  max_file_size_mb: 10
+  max_snapshots: 50
+  max_total_size_mb: 500
+  min_interval_hours: 24
+  retention_days: 7
+code_execution:
+  max_tool_calls: 50
+  mode: project
+  timeout: 300
+command_allowlist:
+- script execution via -e/-c flag
+- shell command via -c/-lc flag
+- stop/restart hermes gateway (kills running agents)
+compression:
+  enabled: true
+  hygiene_hard_message_limit: 400
+  protect_last_n: 10
+  target_ratio: 0.15
+  threshold: 0.6
+context:
+  engine: compressor
+credential_pool_strategies: {}
+cron:
+  max_parallel_jobs: null
+  wrap_response: true
+curator:
+  archive_after_days: 90
+  backup:
+    enabled: true
+    keep: 5
+  enabled: true
+  interval_hours: 168
+  min_idle_hours: 2
+  stale_after_days: 30
+dashboard:
+  theme: default
+default-model: qwen3.8-hermes:27b-128k
+delegation:
+  api_key: ''
+  base_url: ''
+  child_timeout_seconds: 900
+  inherit_mcp_toolsets: true
+  max_concurrent_children: 4
+  max_iterations: 100
+  max_spawn_depth: 2
+  model: ''
+  orchestrator_enabled: true
+  provider: ''
+  reasoning_effort: ''
+  subagent_auto_approve: false
+discord:
+  allowed_channels: ''
+  auto_thread: true
+  channel_prompts: {}
+  dm_role_auth_guild: ''
+  free_response_channels: ''
+  reactions: true
+  require_mention: true
+  server_actions: ''
+display:
+  background_process_notifications: all
+  bell_on_complete: false
+  busy_input_mode: interrupt
+  compact: false
+  copy_shortcut: auto
+  ephemeral_system_ttl: 0
+  final_response_markdown: strip
+  inline_diffs: true
+  interim_assistant_messages: true
+  language: en
+  persistent_output: true
+  persistent_output_max_lines: 200
+  personality: kawaii
+  platforms: {}
+  resume_display: full
+  runtime_footer:
+    enabled: false
+    fields:
+    - model
+    - context_pct
+    - cwd
+  show_cost: false
+  show_reasoning: false
+  skin: default
+  streaming: true
+  tool_preview_length: 0
+  tool_progress: verbose
+  tool_progress_command: false
+  tool_progress_overrides: {}
+  tui_auto_resume_recent: false
+  tui_status_indicator: kaomoji
+  user_message_preview:
+    first_lines: 2
+    last_lines: 2
+fallback_providers: []
+file_read_max_chars: 100000
+goals:
+  max_turns: 20
+group_sessions_per_user: true
+hooks:
+  pre_llm_call:
+  - command: ~/.hermes/agent-hooks/inject-market-data.sh
+    timeout: 4
+hooks_auto_accept: true
+human_delay:
+  max_ms: 2500
+  min_ms: 800
+  mode: 'off'
+image_gen:
+  model: grok-imagine-image
+  provider: xai
+  use_gateway: false
+kanban:
+  dispatch_in_gateway: true
+  dispatch_interval_seconds: 60
+  failure_limit: 2
+known_plugin_toolsets:
+  cli:
+  - spotify
+  telegram:
+  - spotify
+logging:
+  backup_count: 3
+  level: INFO
+  max_size_mb: 5
+matrix:
+  allowed_rooms: ''
+  free_response_rooms: ''
+  require_mention: true
+memory:
+  flush_min_turns: 6
+  memory_char_limit: 2200
+  memory_enabled: true
+  nudge_interval: 10
+  provider: local-sqlite-memory
+  user_char_limit: 1375
+  user_profile_enabled: true
+model:
+  context_length: 65536
+  default: qwen3.8-hermes:27b-128k
+  ollama_num_ctx: 65536
+  provider: ollama
+model_catalog:
+  enabled: true
+  providers: {}
+  ttl_hours: 24
+  url: https://hermes-agent.nousresearch.com/docs/api/model-catalog.json
+network:
+  force_ipv4: false
+onboarding:
+  seen:
+    busy_input_prompt: true
+    tool_progress_prompt: true
+openrouter:
+  min_coding_score: 0.65
+  response_cache: true
+  response_cache_ttl: 300
+personalities: {}
+platforms:
+  telegram:
+    enabled: false
+  whatsapp:
+    enabled: true
+platform_toolsets:
+  cli:
+  - clarify
+  - file
+  - image_gen
+  - memory
+  - messaging
+  - session_search
+  - skills
+  - todo
+  - tts
+  - vision
+  discord:
+  - hermes-discord
+  homeassistant:
+  - hermes-homeassistant
+  qqbot:
+  - hermes-qqbot
+  signal:
+  - hermes-signal
+  slack:
+  - hermes-slack
+  telegram:
+  - clarify
+  - file
+  - image_gen
+  - memory
+  - messaging
+  - session_search
+  - skills
+  - todo
+  - tts
+  - vision
+  whatsapp: []
+prefill_messages_file: ''
+privacy:
+  redact_pii: false
+prompt_caching:
+  cache_ttl: 5m
+providers:
+  ollama:
+    api: http://localhost:11434/v1
+    default_model: qwen3.8-hermes:27b-128k
+    models:
+    - qwen3.8-hermes:27b-128k
+    - qwen3.8-distill-2b:q4_k_m
+    - nomic-embed-text
+    name: Ollama
+    request_timeout_seconds: 300
+    stale_timeout_seconds: 300
+quick_commands: {}
+security:
+  allow_private_urls: false
+  redact_secrets: true
+  tirith_enabled: true
+  tirith_fail_open: false
+  tirith_path: tirith
+  tirith_timeout: 5
+  website_blocklist:
+    domains: []
+    enabled: false
+    shared_files: []
+session_reset:
+  at_hour: 4
+  idle_minutes: 1440
+  mode: none
+sessions:
+  auto_prune: false
+  min_interval_hours: 24
+  retention_days: 90
+  vacuum_after_prune: true
+skills:
+  creation_nudge_interval: 15
+  external_dirs:
+  - /home/hans/hanshermesagent/skills/hve
+  guard_agent_created: false
+  inline_shell: false
+  inline_shell_timeout: 10
+  template_vars: true
+slack:
+  allowed_channels: ''
+  channel_prompts: {}
+  free_response_channels: ''
+  require_mention: true
+streaming:
+  enabled: false
+stt:
+  enabled: true
+  local:
+    language: ''
+    model: base
+  mistral:
+    model: voxtral-mini-latest
+  openai:
+    model: whisper-1
+  provider: local
+telegram:
+  enabled: false
+  allowed_chats: ''
+  channel_prompts: {}
+  reactions: false
+terminal:
+  auto_source_bashrc: true
+  backend: local
+  container_cpu: 1
+  container_disk: 51200
+  container_memory: 5120
+  container_persistent: true
+  cwd: .
+  daytona_image: nikolaik/python-nodejs:python3.11-nodejs20
+  docker_env: {}
+  docker_forward_env: []
+  docker_image: nikolaik/python-nodejs:python3.11-nodejs20
+  docker_mount_cwd_to_workspace: false
+  docker_run_as_host_user: false
+  docker_volumes: []
+  env_passthrough: []
+  lifetime_seconds: 300
+  modal_image: nikolaik/python-nodejs:python3.11-nodejs20
+  modal_mode: auto
+  persistent_shell: true
+  shell_init_files: []
+  singularity_image: docker://nikolaik/python-nodejs:python3.11-nodejs20
+  timeout: 180
+  vercel_runtime: node24
+timezone: ''
+tool_loop_guardrails:
+  hard_stop_after:
+    exact_failure: 5
+    idempotent_no_progress: 5
+    same_tool_failure: 8
+  hard_stop_enabled: true
+  warn_after:
+    exact_failure: 2
+    idempotent_no_progress: 2
+    same_tool_failure: 3
+  warnings_enabled: true
+tool_output:
+  max_bytes: 50000
+  max_line_length: 2000
+  max_lines: 2000
+toolsets:
+- hermes-cli
+mcp_servers:
+  hve-team-tasking-phase1:
+    command: /home/hans/.hermes-mcp-venv/bin/python
+    args:
+    - /home/hans/hanshermesagent/mcp/team_tasking_phase1_server.py
+    enabled: true
+    tool_filter:
+    - normalize_task
+    - approve_task
+    - starting
+    - deliver_text_artifact
+    - deliver_artifact
+    - validate_task
+    - task_status_digest
+    - task_audit_trail
+tts:
+  edge:
+    voice: en-US-AriaNeural
+  elevenlabs:
+    model_id: eleven_multilingual_v2
+    voice_id: pNInz6obpgDQGcFmaJgB
+  mistral:
+    model: voxtral-mini-tts-2603
+    voice_id: c69964a6-ab8b-4f8a-9465-ec0925096ec8
+  neutts:
+    device: cpu
+    model: neuphonic/neutts-air-q4-gguf
+    ref_audio: ''
+    ref_text: ''
+  openai:
+    model: gpt-4o-mini-tts
+    voice: alloy
+  piper:
+    voice: en_US-lessac-medium
+  provider: edge
+  use_gateway: false
+  xai:
+    bit_rate: 128000
+    language: en
+    sample_rate: 24000
+    voice_id: eve
+updates:
+  backup_keep: 5
+  pre_update_backup: false
+voice:
+  auto_tts: false
+  beep_enabled: true
+  max_recording_seconds: 120
+  record_key: ctrl+b
+  silence_duration: 3
+  silence_threshold: 200
+web:
+  backend: firecrawl
+  extract_backend: lightpanda
+  search_backend: ''
+  use_gateway: false
+whatsapp:
+  enabled: true
