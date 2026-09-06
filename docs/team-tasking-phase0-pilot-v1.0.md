@@ -81,3 +81,22 @@ Also test a proposal containing financial, health, tax, strategic, or
 credential content. It may be classified in the private pilot, but its card
 must show `blocked_by_sensitivity_gate` for any future public repository
 adapter. Do not test AL-01 or send any group message.
+
+## UAT findings and operating skills
+
+The first live UAT reached `awaiting_validation` successfully, but exposed
+four model-operation failure modes: raw text was passed where Base64 was
+required, a generic tool wrapper was attempted without a tool name, a
+transition was attempted without `task_id`, and a stored artifact was treated
+as readable text without checking its type. The pilot backend rejected the
+invalid calls without changing state, and the later confirmed delivery was
+recorded with its hash.
+
+The repository now provides three companion skills:
+
+- `team-tasking-mcp-discipline` — exact named-tool calls, complete arguments,
+  stable task IDs, and confirmed-response handling.
+- `team-tasking-artifact-delivery` — UTF-8/Base64 encoding, safe filenames,
+  private artifact handling, and binary-file boundaries.
+- `team-tasking-lifecycle` — valid state transitions, explicit Hans gates, and
+  deterministic recovery.

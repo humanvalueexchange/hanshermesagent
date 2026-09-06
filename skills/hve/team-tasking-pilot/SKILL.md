@@ -26,7 +26,8 @@ adapter, not an autonomous project manager.
 
 1. Call `normalize_task` only after the proposal has explicit owner,
    deliverable, Five Wealth pillar, acceptance criteria, and optional due date.
-2. Show the returned task ID, card preview, team-message preview, sensitivity
+2. Copy the returned `task_id` exactly and carry it through every later
+   lifecycle call. Show the returned task ID, card preview, team-message preview, sensitivity
    classification, and intended initial state (`Open`). Do not claim that
    anything was created.
 3. Call `approve_task` only after Hans explicitly approves that exact preview.
@@ -41,3 +42,17 @@ adapter, not an autonomous project manager.
 Every successful reply must be based on the tool's `confirmed` result. On a
 failure, surface the exact `pending_action`, error, and recovery state without
 reporting success.
+
+## Tool-use discipline
+
+- Call the named `hve-team-tasking-pilot` MCP tool directly. Never emit a
+  generic `tool_call`, invent a tool name, or omit a required argument.
+- Before any transition, verify that the saved `task_id` is present and that
+  the requested transition is valid for the current state.
+- Do not substitute `task_status_digest` or `task_audit_trail` for a transition
+  call. They observe state; they do not change it.
+- After a rejected call, report the rejection and stop that action. Do not
+  retry with guessed arguments.
+
+Artifact encoding and text handling are defined by the companion skills
+`team-tasking-artifact-delivery` and `team-tasking-lifecycle`.
