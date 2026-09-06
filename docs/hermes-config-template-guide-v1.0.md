@@ -48,13 +48,15 @@ code execution, delegation, cron, todos, computer use, and media tools.
 Only give powerful tools to trusted channels. A group should not receive the
 same privileges as an allowlisted private control channel.
 
-For Phase 0 clean team-tasking delivery UAT, use
+For Phase 0 clean team-tasking UAT, use
 `config/hermes-config.phase0-uat.yaml` instead of the broad daily-driver
-template. That profile keeps the 64K context window but removes terminal,
-browser/web, code execution, delegation, cron, unrelated MCP servers, and
-validation/completion tools so a delivery run must stop at
-`awaiting_validation`. It records those exclusions in `agent.disabled_toolsets`
-and removes them from platform toolsets.
+template. That profile keeps the 64K context window and exposes the complete
+approved private pilot lifecycle on the `hve-team-tasking-pilot` MCP server,
+including artifact delivery, optional completion reporting, Hans-gated
+validation, failure recording, status digest, and audit trail tools. It still
+removes terminal, browser/web, code execution, delegation, cron, unrelated MCP
+servers, and other high-risk toolsets through `agent.disabled_toolsets` and
+platform-toolset narrowing.
 
 ### `whatsapp`, `telegram`, `discord`, and `slack`
 

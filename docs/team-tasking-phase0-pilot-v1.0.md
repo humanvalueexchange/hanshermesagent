@@ -80,14 +80,20 @@ WhatsApp tool surface to non-terminal coordination tools and the private pilot
 MCP server. It also lists the excluded high-risk toolsets in
 `agent.disabled_toolsets`.
 
-For the clean delivery UAT, the profile intentionally excludes:
+For the clean UAT, the profile intentionally excludes:
 
 - terminal
 - browser/web
 - code execution, delegation, cron, and computer-use tools
 - unrelated MCP servers such as shared context and HVE node tools
-- `report_done` and `validate_task` during the delivery stop-at-awaiting-
-  validation run
+
+The profile exposes the complete approved private pilot lifecycle on
+`hve-team-tasking-pilot`: `normalize_task`, `approve_task`, `starting`,
+`blocked`, `retry`, `deliver_text_artifact`, `deliver_artifact`, `report_done`,
+`validate_task`, `record_failure`, `task_status_digest`, and
+`task_audit_trail`. Operational discipline still requires the delivery turn to
+stop at `awaiting_validation`; `validate_task` is only for a later explicit Hans
+approval or rejection turn.
 
 Activating this profile modifies the live Hermes profile outside this
 repository, so activation must be performed as an explicit deployment action
@@ -126,8 +132,8 @@ the delivery message once to confirm the retry reports a duplicate/idempotent
 delivery without creating another artifact.
 
 Validation remains Hans-gated. Do not ask Hermes to approve or reject the task
-inside the same delivery turn. If Hans later tests validation using a profile
-that exposes `validate_task`, the sequence is:
+inside the same delivery turn. After a separate explicit Hans validation
+message, the sequence is:
 
 ```text
 Hans rejects <task-id> — add the missing evidence link

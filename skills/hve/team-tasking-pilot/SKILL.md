@@ -58,10 +58,11 @@ reporting success.
   call. They observe state; they do not change it.
 - After a rejected call, report the rejection and stop that action. Do not
   retry with guessed arguments.
-- For the clean Phase 0 delivery UAT, use the narrow UAT profile configuration;
-  it intentionally removes terminal, browser/web, unrelated MCP servers, and
-  validation/completion tools so the delivery turn can only end at
-  `awaiting_validation`.
+- For the clean Phase 0 UAT, use the narrow UAT profile configuration; it
+  exposes the complete approved private pilot lifecycle while intentionally
+  removing terminal, browser/web, unrelated MCP servers, code execution,
+  delegation, and cron. The delivery turn must still stop at
+  `awaiting_validation` until Hans sends a separate validation message.
 
 Artifact encoding and text handling are defined by the companion skills
 `team-tasking-artifact-delivery` and `team-tasking-lifecycle`.

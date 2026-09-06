@@ -484,6 +484,8 @@ mcp_servers:
     - retry
     - deliver_text_artifact
     - deliver_artifact
+    - report_done
+    - validate_task
     - record_failure
     - task_status_digest
     - task_audit_trail

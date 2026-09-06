@@ -260,11 +260,22 @@ class TeamTaskingPilotTests(unittest.TestCase):
         self.assertEqual(uat["toolsets"], ["hermes-cli"])
         self.assertEqual(set(uat["mcp_servers"]), {"hve-team-tasking-pilot"})
 
+        expected_pilot_tools = {
+            "normalize_task",
+            "approve_task",
+            "starting",
+            "blocked",
+            "retry",
+            "deliver_text_artifact",
+            "deliver_artifact",
+            "report_done",
+            "validate_task",
+            "record_failure",
+            "task_status_digest",
+            "task_audit_trail",
+        }
         pilot_filter = set(uat["mcp_servers"]["hve-team-tasking-pilot"]["tool_filter"])
-        self.assertIn("deliver_text_artifact", pilot_filter)
-        self.assertIn("deliver_artifact", pilot_filter)
-        self.assertNotIn("report_done", pilot_filter)
-        self.assertNotIn("validate_task", pilot_filter)
+        self.assertEqual(pilot_filter, expected_pilot_tools)
 
 
 if __name__ == "__main__":
