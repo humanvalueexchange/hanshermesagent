@@ -83,6 +83,9 @@ class GitHubPhase1Tests(unittest.TestCase):
         self.assertEqual(sum("issues" in " ".join(call) and "--method" in call for call in fake.calls), 1)
         self.assertEqual(sum(call[:2] == ["project", "item-add"] for call in fake.calls), 1)
         self.assertTrue(any(call[:2] == ["project", "item-edit"] for call in fake.calls))
+        field_calls = [" ".join(call) for call in fake.calls if call[:2] == ["project", "item-edit"]]
+        self.assertTrue(any("--single-select-option-id 23cd5c76" in call for call in field_calls))
+        self.assertTrue(any("--single-select-option-id 49826168" in call for call in field_calls))
 
     def test_artifact_publication_and_duplicate_safe_status(self) -> None:
         fake = FakeGitHub()

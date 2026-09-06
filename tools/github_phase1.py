@@ -30,6 +30,8 @@ class GitHubPhase1Config:
     branch: str = "main"
     project_status_field_id: str = "PVTSSF_lADOESaYS84BilTnzhhc0T8"
     project_status_options: dict[str, str] | None = None
+    pillar_options: dict[str, str] | None = None
+    sensitivity_options: dict[str, str] | None = None
     owner_field_id: str = "PVTF_lADOESaYS84BilTnzhhc0d8"
     pillar_field_id: str = "PVTSSF_lADOESaYS84BilTnzhhc0e4"
     due_date_field_id: str = "PVTF_lADOESaYS84BilTnzhhc0e8"
@@ -46,6 +48,32 @@ class GitHubPhase1Config:
                     "in_progress": "6890158e",
                     "awaiting_validation": "d6a528b4",
                     "done": "07d87d56",
+                },
+            )
+        if self.pillar_options is None:
+            object.__setattr__(
+                self,
+                "pillar_options",
+                {
+                    "Time": "23cd5c76",
+                    "Physical": "e332fff6",
+                    "Mental": "17c3baa9",
+                    "Social": "79a9efae",
+                    "Financial": "19d5d587",
+                },
+            )
+        if self.sensitivity_options is None:
+            object.__setattr__(
+                self,
+                "sensitivity_options",
+                {
+                    "public": "49826168",
+                    "financial": "60f83e0b",
+                    "health": "522c1bc8",
+                    "tax": "c44eda49",
+                    "strategic": "68fd217a",
+                    "credential": "71fbf818",
+                    "restricted": "2ed0c137",
                 },
             )
 
@@ -284,8 +312,12 @@ class GitHubPhase1Adapter:
         if not item_id:
             raise GitHubPhase1Error("project item response lacked item ID")
         self._set_field(item_id, self.config.owner_field_id, task["owner"])
-        self._set_field(item_id, self.config.pillar_field_id, task["pillar"], single_select=True)
-        self._set_field(item_id, self.config.sensitivity_field_id, task["sensitivity"], single_select=True)
+        pillar_option = (self.config.pillar_options or {}).get(task["pillar"])
+        sensitivity_option = (self.config.sensitivity_options or {}).get(task["sensitivity"])
+        if not pillar_option or not sensitivity_option:
+            raise GitHubPhase1Error("Project field option mapping is incomplete")
+        self._set_field(item_id, self.config.pillar_field_id, pillar_option, single_select=True)
+        self._set_field(item_id, self.config.sensitivity_field_id, sensitivity_option, single_select=True)
         self._set_field(item_id, self.config.task_id_field_id, task["task_id"])
         if task.get("due_date"):
             self._set_field(item_id, self.config.due_date_field_id, task["due_date"], date=True)
