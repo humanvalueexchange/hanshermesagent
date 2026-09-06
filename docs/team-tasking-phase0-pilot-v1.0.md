@@ -1,7 +1,7 @@
 # HVE Team Tasking — Phase 0 Private Pilot
 
 **Date:** 2026-09-05  
-**Status:** Implemented; Phase 0 UAT not yet passed
+**Status:** Implemented with UAT hardening; clean Phase 0 UAT not yet passed
 **Scope:** Hans's personal WhatsApp DM only
 
 ## Isolated backend decision
@@ -30,7 +30,8 @@ requires explicit Hans approval before the local pilot card changes from
 - Events are append-only and retain source message, actor, timestamp, task ID,
   requested transition, result, and approval/rejection reason.
 - Artifacts are stored only in the isolated pilot directory and are recorded
-  with SHA-256 hashes.
+  with filename, byte count, line count, SHA-256 hash, and final state
+  metadata.
 - Financial, health, tax, strategic, credential, and restricted content is
   classified and marked as blocked for any future public-repository adapter.
 - AL-01 and Alan's bio are reserved and rejected during Phase 0.
@@ -39,6 +40,58 @@ requires explicit Hans approval before the local pilot card changes from
 The backend is a control-plane test surface, not an authorization to proceed
 to the public team repository or controlled group test. Those require Hans's
 explicit Phase 0 approval after the private DM round trip passes.
+
+## Artifact delivery contract
+
+Use `deliver_text_artifact` for inline Markdown, JSON, or other UTF-8 text.
+Hermes passes the text as `content_text`; the MCP server performs UTF-8 byte
+handling and stores the resulting bytes. This avoids model-side Base64 mistakes
+for normal text deliverables.
+
+Use `deliver_artifact` only when a payload must remain binary-safe. Its
+existing contract is preserved: callers pass standard Base64 in
+`content_base64`, and the server decodes it with strict Base64 validation before
+writing the bytes.
+
+Both delivery tools return:
+
+- `filename`
+- `byte_count`
+- `line_count`
+- `sha256`
+- `final_state`
+- `awaiting_validation`
+
+After `confirmed: true` artifact delivery, Hermes must report those fields and
+stop. It must not call `report_done`, `validate_task`, terminal, browser/web,
+or unrelated tools in that same turn. The repository can enforce the valid
+state transition (`open`/`in_progress` → `awaiting_validation`) and can provide
+tool-response/profile guardrails, but it cannot prove a framework-level
+same-turn hard stop without runtime orchestration support. The clean UAT
+profile therefore removes the risky tools for the delivery run instead of
+pretending the repository alone can enforce that runtime guarantee.
+
+## Clean UAT profile configuration
+
+`config/hermes-config.phase0-uat.yaml` is the narrow clean-delivery UAT profile
+configuration. It keeps the required 64K model context
+(`context_length: 65536` and `ollama_num_ctx: 65536`) while narrowing the
+WhatsApp tool surface to non-terminal coordination tools and the private pilot
+MCP server. It also lists the excluded high-risk toolsets in
+`agent.disabled_toolsets`.
+
+For the clean delivery UAT, the profile intentionally excludes:
+
+- terminal
+- browser/web
+- code execution, delegation, cron, and computer-use tools
+- unrelated MCP servers such as shared context and HVE node tools
+- `report_done` and `validate_task` during the delivery stop-at-awaiting-
+  validation run
+
+Activating this profile modifies the live Hermes profile outside this
+repository, so activation must be performed as an explicit deployment action
+after the committed source is reviewed.
 
 ## Hans manual DM script
 
@@ -64,6 +117,19 @@ Starting <task-id>
 Blocked <task-id> — waiting for source material
 Retry <task-id>
 Deliver `checklist.md` for <task-id> with the approved checklist content
+```
+
+Expected: the card proceeds through `Open`, `In Progress`, `Blocked`,
+`In Progress`, and `Awaiting Validation`. Hermes reports the artifact filename,
+byte count, line count, SHA-256, and `awaiting_validation`, then stops. Repeat
+the delivery message once to confirm the retry reports a duplicate/idempotent
+delivery without creating another artifact.
+
+Validation remains Hans-gated. Do not ask Hermes to approve or reject the task
+inside the same delivery turn. If Hans later tests validation using a profile
+that exposes `validate_task`, the sequence is:
+
+```text
 Hans rejects <task-id> — add the missing evidence link
 Retry <task-id>
 Hans approves <task-id>
@@ -71,11 +137,10 @@ Status digest
 Audit trail <task-id>
 ```
 
-Expected: the card proceeds through `Open`, `In Progress`, `Blocked`,
-`In Progress`, and `Awaiting Validation`; rejection records its reason and
-returns to `Open`; the final approval reaches `Done`. The digest and audit
-trail must match the DM sequence. Repeat any message once to confirm no
-duplicate card, artifact, or transition is reported.
+Expected: rejection records its reason and returns to `Open`; the final
+explicit Hans approval reaches `Done`. The digest and audit trail must match
+the DM sequence. Repeat any message once to confirm no duplicate card,
+artifact, or transition is reported.
 
 Also test a proposal containing financial, health, tax, strategic, or
 credential content. It may be classified in the private pilot, but its card
@@ -84,7 +149,7 @@ adapter. Do not test AL-01 or send any group message.
 
 ## Operating skills
 
-The repository provides three companion skills:
+The repository provides four companion skills:
 
 - `team-tasking-mcp-discipline` — exact named-tool calls, complete arguments,
   stable task IDs, and confirmed-response handling.
@@ -92,6 +157,8 @@ The repository provides three companion skills:
   private artifact handling, and binary-file boundaries.
 - `team-tasking-lifecycle` — valid state transitions, explicit Hans gates, and
   deterministic recovery.
+- `team-tasking-pilot` — the Hans-only Phase 0 DM workflow and clean UAT
+  boundary.
 
 Live UAT evidence is runtime-local and must not be committed to GitHub. The
 Phase 0 gate remains closed until one clean personal-DM run completes without

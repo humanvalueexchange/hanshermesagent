@@ -1,7 +1,15 @@
+# Phase 0 clean UAT profile config. Generated from hermes-config.template.yaml; keep model context at 64K.
 _config_version: 23
 agent:
   api_max_retries: 3
-  disabled_toolsets: []
+  disabled_toolsets:
+  - browser
+  - code_execution
+  - computer_use
+  - cronjob
+  - delegation
+  - terminal
+  - web
   gateway_auto_continue_freshness: 3600
   gateway_notify_interval: 180
   gateway_timeout: 600
@@ -174,9 +182,9 @@ command_allowlist:
 compression:
   enabled: true
   hygiene_hard_message_limit: 400
-  protect_last_n: 10     # reduced from 20 — fewer protected = more aggressive compression
-  target_ratio: 0.15     # compress to 15% of context (was 0.2) — more headroom
-  threshold: 0.6         # fire compression at 60% full (was 0.85) — much earlier safety margin
+  protect_last_n: 10
+  target_ratio: 0.15
+  threshold: 0.6
 context:
   engine: compressor
 credential_pool_strategies: {}
@@ -194,7 +202,6 @@ curator:
   stale_after_days: 30
 dashboard:
   theme: default
-# Primary local model: qwen3.8-hermes:27b-128k.
 default-model: qwen3.8-hermes:27b-128k
 delegation:
   api_key: ''
@@ -319,22 +326,16 @@ openrouter:
 personalities: {}
 platform_toolsets:
   cli:
-  - browser
   - clarify
-  - code_execution
-  - cronjob
-  - delegation
   - file
   - image_gen
   - memory
   - messaging
   - session_search
   - skills
-  - terminal
   - todo
   - tts
   - vision
-  - web
   discord:
   - hermes-discord
   homeassistant:
@@ -346,40 +347,21 @@ platform_toolsets:
   slack:
   - hermes-slack
   telegram:
-  - browser
   - clarify
-  - code_execution
-  - cronjob
-  - delegation
   - file
   - image_gen
   - memory
   - messaging
   - session_search
   - skills
-  - terminal
   - todo
   - tts
   - vision
-  - web
   whatsapp:
-  - bfl
-  - browser
   - clarify
-  - code_execution
-  - computer_use
-  - cronjob
-  - delegation
-  - file
-  - image_gen
   - memory
-  - session_search
   - skills
-  - terminal
   - todo
-  - tts
-  - vision
-  - web
 prefill_messages_file: ''
 privacy:
   redact_pii: false
@@ -488,7 +470,6 @@ tool_output:
   max_lines: 2000
 toolsets:
 - hermes-cli
-- web
 mcp_servers:
   hve-team-tasking-pilot:
     command: /home/hans/.hermes-mcp-venv/bin/python
@@ -503,45 +484,9 @@ mcp_servers:
     - retry
     - deliver_text_artifact
     - deliver_artifact
-    - report_done
-    - validate_task
     - record_failure
     - task_status_digest
     - task_audit_trail
-  hve-shared-context:
-    command: /opt/hve-shared-context/current/.venv/bin/python
-    args:
-    - -m
-    - hve_shared_context.mcp_server
-    enabled: true
-    env:
-      HVE_SHARED_CONTEXT_STORE: /var/lib/hve-shared-context
-    tool_filter:
-    - get_agent_context
-    - get_daily_context
-    - list_entities
-    - search_context
-    - list_decisions
-    - list_goals
-    - get_provenance
-  hve-node:
-    url: "http://localhost:8765/mcp"
-    headers:
-      X-HVE-API-Key: "${HVE_MCP_API_KEY}"
-    tools:
-      prompts: false
-      include:
-      - get_client_context
-      - get_capability_assessment
-      - search_knowledge_vault
-      - archive_link
-      - archive_pdf
-      - create_task
-      - suggest_backlog_issue
-      - vote_backlog_issue
-      - read_github_issue
-      - comment_github_issue
-      - list_github_issues
 tts:
   edge:
     voice: en-US-AriaNeural

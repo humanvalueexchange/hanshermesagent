@@ -25,6 +25,11 @@ An artifact delivery may move `open` or `in_progress` to
 `in_progress` to `awaiting_validation`. Hans rejection moves
 `awaiting_validation` back to `open` with an explicit reason.
 
+When artifact delivery is confirmed, the delivery turn is complete. Report the
+artifact metadata and `awaiting_validation` state, then stop; do not call
+`report_done`, `validate_task`, terminal, browser/web, or unrelated tools in
+that same turn.
+
 ## Recovery rules
 
 - If a tool rejects an operation, do not claim progress and do not change the

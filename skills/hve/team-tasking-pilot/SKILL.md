@@ -31,13 +31,18 @@ adapter, not an autonomous project manager.
    classification, and intended initial state (`Open`). Do not claim that
    anything was created.
 3. Call `approve_task` only after Hans explicitly approves that exact preview.
-4. Use `starting`, `blocked`, `retry`, `deliver_artifact`, and `report_done` for
-   simulated lifecycle reports. Artifact content is stored only in the private
-   pilot backend.
+4. Use `starting`, `blocked`, `retry`, `deliver_text_artifact`,
+   `deliver_artifact`, and `report_done` for simulated lifecycle reports.
+   Artifact content is stored only in the private pilot backend.
 5. Use `validate_task` only for Hans's explicit approval or rejection. A
    rejection must include the exact reason and returns the task to `Open`.
 6. Use `task_status_digest` and `task_audit_trail` to show current ownership,
    due dates, states, and provenance.
+
+After any confirmed artifact delivery, report the returned filename, byte
+count, line count, SHA-256, and final `awaiting_validation` state, then stop.
+Do not call `report_done`, `validate_task`, `terminal`, browser/web, or any
+unrelated tool in the same turn.
 
 Every successful reply must be based on the tool's `confirmed` result. On a
 failure, surface the exact `pending_action`, error, and recovery state without
@@ -53,6 +58,10 @@ reporting success.
   call. They observe state; they do not change it.
 - After a rejected call, report the rejection and stop that action. Do not
   retry with guessed arguments.
+- For the clean Phase 0 delivery UAT, use the narrow UAT profile configuration;
+  it intentionally removes terminal, browser/web, unrelated MCP servers, and
+  validation/completion tools so the delivery turn can only end at
+  `awaiting_validation`.
 
 Artifact encoding and text handling are defined by the companion skills
 `team-tasking-artifact-delivery` and `team-tasking-lifecycle`.

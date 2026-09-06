@@ -23,7 +23,10 @@ mcp = FastMCP(
     instructions=(
         "Hans-only Phase 0 private workflow. This MCP server writes only to the "
         "isolated local pilot backend. It never creates GitHub objects, commits, "
-        "public artifacts, or WhatsApp group messages."
+        "public artifacts, or WhatsApp group messages. After a confirmed artifact "
+        "delivery, report the returned metadata and awaiting_validation state, then "
+        "stop without calling report_done, validate_task, terminal, or unrelated tools "
+        "in the same turn."
     ),
 )
 
@@ -97,6 +100,39 @@ def deliver_artifact(
         content = base64.b64decode(content_base64, validate=True)
     except Exception as exc:
         return {"status": "rejected", "confirmed": False, "error": f"invalid base64 artifact: {exc}"}
+    return _call(
+        default_store().deliver_artifact,
+        task_id,
+        filename=filename,
+        content=content,
+        source_message=source_message,
+        event_id=event_id,
+    )
+
+
+@mcp.tool()
+def deliver_text_artifact(
+    task_id: str,
+    filename: str,
+    content_text: str,
+    source_message: str,
+    event_id: str,
+) -> dict[str, Any]:
+    """Store a UTF-8 text pilot artifact and move the task to Awaiting Validation."""
+    if not isinstance(content_text, str):
+        return {
+            "status": "rejected",
+            "confirmed": False,
+            "error": "content_text must be a UTF-8 text string; artifact was not written.",
+        }
+    try:
+        content = content_text.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as exc:
+        return {
+            "status": "rejected",
+            "confirmed": False,
+            "error": f"content_text must be valid UTF-8 text; artifact was not written: {exc}",
+        }
     return _call(
         default_store().deliver_artifact,
         task_id,

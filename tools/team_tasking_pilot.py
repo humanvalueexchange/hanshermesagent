@@ -30,6 +30,10 @@ ALLOWED_TRANSITIONS = {
     "approve_validation": {"awaiting_validation"},
     "reject_validation": {"awaiting_validation"},
 }
+DELIVERY_CONFIRMED_STATUSES = {
+    "artifact_confirmed",
+    "duplicate_artifact_delivery",
+}
 SENSITIVE_PATTERNS = {
     "financial": re.compile(r"\b(iul|investment|investing|bank|budget|financial|treasury|trading|kraken|bitcoin|crypto|wallet)\b", re.I),
     "health": re.compile(r"\b(health|medical|diagnos|nutrition|diet|therapy|medication|patient)\b", re.I),
@@ -60,6 +64,10 @@ def _text(value: Any, field: str, required: bool = True) -> str:
     if required and not result:
         raise PilotError(f"{field} is required; no task was created.")
     return result
+
+
+def _line_count(content: bytes) -> int:
+    return len(content.splitlines())
 
 
 def classify_sensitivity(values: list[str]) -> str:
@@ -279,27 +287,50 @@ class PilotStore:
         name = Path(_text(filename, "filename")).name
         if name != filename or name in {".", ".."}:
             raise PilotError("filename must be a simple file name; artifact was not written.")
+        if not isinstance(content, (bytes, bytearray)):
+            raise PilotError("content must be bytes; artifact was not written.")
+        content_bytes = bytes(content)
         task = self._get(task_id)
+        digest = hashlib.sha256(content_bytes).hexdigest()
+        artifact_dir = self.artifact_root / task_id
+        path = artifact_dir / name
+        metadata = self._artifact_metadata(
+            filename=name,
+            path=path,
+            content=content_bytes,
+            sha256=digest,
+            final_state="awaiting_validation",
+        )
         with self._connect() as db:
             prior = db.execute(
                 "SELECT * FROM events WHERE event_key=?", (f"{event_id}:artifact",)
             ).fetchone()
             if prior:
+                prior_metadata = json.loads(prior["metadata_json"])
+                prior_sha = prior_metadata.get("sha256")
+                prior_filename = prior_metadata.get("filename")
+                if (
+                    prior_sha is not None
+                    and prior_sha != digest
+                    or prior_filename is not None
+                    and prior_filename != name
+                ):
+                    raise PilotError("event_id was already used for a different artifact; no state changed.")
                 current = db.execute("SELECT * FROM tasks WHERE task_id=?", (task_id,)).fetchone()
-                return self._task_result(current, "duplicate_artifact_delivery")
+                return self._task_result(
+                    current,
+                    "duplicate_artifact_delivery",
+                    self._normalized_delivery_metadata(prior_metadata, current["state"]),
+                )
         if task["state"] not in {"open", "in_progress"}:
             raise PilotError(f"artifact delivery requires open or in_progress state; pending action is unchanged ({task['state']}).")
-        digest = hashlib.sha256(content).hexdigest()
-        artifact_dir = self.artifact_root / task_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
-        path = artifact_dir / name
         temp_path: str | None = None
         try:
-            if not path.exists():
-                with tempfile.NamedTemporaryFile(dir=artifact_dir, delete=False) as handle:
-                    handle.write(content)
-                    temp_path = handle.name
-                os.replace(temp_path, path)
+            with tempfile.NamedTemporaryFile(dir=artifact_dir, delete=False) as handle:
+                handle.write(content_bytes)
+                temp_path = handle.name
+            os.replace(temp_path, path)
             with self._connect() as db:
                 db.execute(
                     "INSERT OR IGNORE INTO artifacts VALUES (?, ?, ?, ?, ?)",
@@ -309,12 +340,30 @@ class PilotStore:
                            (_utc_now(), task_id))
                 self._event(db, event_key=f"{event_id}:artifact", source_message=source_message,
                             actor=actor, task_id=task_id, requested_transition="artifact_delivery",
-                            result="confirmed", metadata={"artifact_path": str(path), "sha256": digest})
+                            result="confirmed", metadata=metadata)
                 row = db.execute("SELECT * FROM tasks WHERE task_id=?", (task_id,)).fetchone()
-            return self._task_result(row, "artifact_confirmed", {"artifact_path": str(path), "sha256": digest})
+            return self._task_result(row, "artifact_confirmed", self._normalized_delivery_metadata(metadata, row["state"]))
         finally:
             if temp_path and Path(temp_path).exists():
                 Path(temp_path).unlink()
+
+    def deliver_text_artifact(
+        self, task_id: str, *, filename: str, content_text: str, source_message: str, event_id: str, actor: str = "Hans"
+    ) -> dict[str, Any]:
+        if not isinstance(content_text, str):
+            raise PilotError("content_text must be a UTF-8 text string; artifact was not written.")
+        try:
+            content = content_text.encode("utf-8", errors="strict")
+        except UnicodeEncodeError as exc:
+            raise PilotError(f"content_text must be valid UTF-8 text; artifact was not written: {exc}") from exc
+        return self.deliver_artifact(
+            task_id,
+            filename=filename,
+            content=content,
+            source_message=source_message,
+            event_id=event_id,
+            actor=actor,
+        )
 
     def validate(
         self, task_id: str, *, approved: bool, source_message: str, event_id: str,
@@ -386,9 +435,54 @@ class PilotStore:
         return self._task_result(updated, "transition_confirmed")
 
     @staticmethod
+    def _artifact_metadata(
+        *, filename: str, path: Path, content: bytes, sha256: str, final_state: str
+    ) -> dict[str, Any]:
+        return {
+            "filename": filename,
+            "artifact_path": str(path),
+            "byte_count": len(content),
+            "line_count": _line_count(content),
+            "sha256": sha256,
+            "final_state": final_state,
+            "awaiting_validation": final_state == "awaiting_validation",
+            "next_required_actor": "Hans",
+            "operating_contract": (
+                "After confirmed artifact delivery, report filename, byte_count, "
+                "line_count, sha256, and awaiting_validation state, then stop. "
+                "Do not call report_done, validate_task, terminal, or unrelated tools "
+                "in the same turn."
+            ),
+        }
+
+    @staticmethod
+    def _normalized_delivery_metadata(metadata: dict[str, Any], state: str) -> dict[str, Any]:
+        normalized = dict(metadata)
+        normalized["final_state"] = state
+        normalized["awaiting_validation"] = state == "awaiting_validation"
+        normalized.setdefault("next_required_actor", "Hans")
+        normalized.setdefault(
+            "operating_contract",
+            (
+                "After confirmed artifact delivery, report filename, byte_count, "
+                "line_count, sha256, and awaiting_validation state, then stop. "
+                "Do not call report_done, validate_task, terminal, or unrelated tools "
+                "in the same turn."
+            ),
+        )
+        return normalized
+
+    @staticmethod
     def _task_result(row: sqlite3.Row, status: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
         result = {
-            "status": status, "confirmed": status in {"preview_ready", "duplicate_preview", "transition_confirmed", "duplicate_transition", "artifact_confirmed"},
+            "status": status,
+            "confirmed": status in {
+                "preview_ready",
+                "duplicate_preview",
+                "transition_confirmed",
+                "duplicate_transition",
+                *DELIVERY_CONFIRMED_STATUSES,
+            },
             "task_id": row["task_id"], "state": row["state"], "owner": row["owner"],
             "card": json.loads(row["card_json"]), "team_message_preview": row["team_message"],
             "sensitivity": row["sensitivity"], "pending_action": row["pending_action"],

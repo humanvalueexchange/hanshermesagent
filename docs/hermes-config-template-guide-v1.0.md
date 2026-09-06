@@ -48,6 +48,14 @@ code execution, delegation, cron, todos, computer use, and media tools.
 Only give powerful tools to trusted channels. A group should not receive the
 same privileges as an allowlisted private control channel.
 
+For Phase 0 clean team-tasking delivery UAT, use
+`config/hermes-config.phase0-uat.yaml` instead of the broad daily-driver
+template. That profile keeps the 64K context window but removes terminal,
+browser/web, code execution, delegation, cron, unrelated MCP servers, and
+validation/completion tools so a delivery run must stop at
+`awaiting_validation`. It records those exclusions in `agent.disabled_toolsets`
+and removes them from platform toolsets.
+
 ### `whatsapp`, `telegram`, `discord`, and `slack`
 
 These sections control channel behavior, such as whether a user or group is
@@ -95,6 +103,11 @@ MCP servers add external tools to Hermes. Each server has a command or URL,
 an enabled flag, and optionally a tool filter. Disable a server that is
 unnecessary or repeatedly failing; otherwise it may waste time reconnecting
 and make simple requests slow.
+
+The default template exposes the full private pilot lifecycle, including both
+`deliver_text_artifact` for UTF-8 text and the existing binary-safe
+`deliver_artifact` Base64 path. The clean UAT profile exposes only the private
+team-tasking pilot server and intentionally omits unrelated MCP tools.
 
 Never commit API keys or private credentials in this section.
 

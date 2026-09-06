@@ -28,3 +28,8 @@ for it instead of guessing.
 Read-only tools (`task_status_digest` and `task_audit_trail`) report state; they
 do not replace `starting`, `blocked`, `retry`, `deliver_artifact`,
 `report_done`, or `validate_task`.
+
+For inline UTF-8 artifacts, use `deliver_text_artifact`; reserve
+`deliver_artifact` for binary-safe Base64 payloads. After either delivery tool
+confirms `awaiting_validation`, report the returned metadata and stop without
+calling any other tool in that turn.
