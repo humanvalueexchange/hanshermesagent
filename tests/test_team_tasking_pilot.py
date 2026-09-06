@@ -222,6 +222,29 @@ class TeamTaskingPilotTests(unittest.TestCase):
         recovered = self.store.retry(self.task_id, source_message="retry", event_id="f-retry")
         self.assertEqual(recovered["state"], "in_progress")
 
+    def test_github_publication_failure_blocks_instead_of_awaiting_validation(self) -> None:
+        self.store.approve(self.task_id, approval_message_id="wa-approve-github-failure")
+        delivered = self.store.deliver_text_artifact(
+            self.task_id,
+            filename="checklist.md",
+            content_text="Ready for GitHub\n",
+            source_message="artifact",
+            event_id="github-failure-artifact",
+        )
+        self.assertEqual(delivered["state"], "awaiting_validation")
+        failed = self.store.failure(
+            self.task_id,
+            action="publish GitHub artifact",
+            error="authenticated repository access denied",
+            source_message="artifact",
+            event_id="github-failure",
+            recovery_state="blocked",
+        )
+        self.assertEqual(failed["state"], "blocked")
+        self.assertEqual(failed["pending_action"], "publish GitHub artifact")
+        self.assertIn("authenticated repository access denied", failed["error"])
+        self.assertEqual(self.store.events(self.task_id)[-1]["reason"], "authenticated repository access denied")
+
     def test_github_tracking_failure_can_be_retried_after_approval(self) -> None:
         self.store.approve(self.task_id, approval_message_id="wa-approve-github-retry")
         self.store.failure(
@@ -257,6 +280,29 @@ class TeamTaskingPilotTests(unittest.TestCase):
                 pillar="Physical",
                 acceptance_criteria=["Approved by Hans"],
             )
+
+    def test_phase1_store_can_normalize_reserved_al01_task(self) -> None:
+        phase1 = PilotStore(
+            Path(self.tempdir.name) / "phase1.db",
+            Path(self.tempdir.name) / "phase1-artifacts",
+            task_prefix="P1",
+            backend_name="controlled-phase-1-github",
+            public_repository="humanvalueexchange/hve-team",
+            enforce_sensitivity_gate=False,
+            enforce_reserved_al01_gate=False,
+        )
+        normalized = phase1.normalize(
+            source_message_id="al-01-phase1",
+            source_message="Create AL-01 Alan bio",
+            owner="Alan",
+            deliverable="Alan's updated bio",
+            pillar="Physical",
+            acceptance_criteria=["Approved by Hans"],
+        )
+        self.assertEqual(normalized["status"], "preview_ready")
+        self.assertEqual(normalized["state"], "draft")
+        self.assertTrue(normalized["task_id"].startswith("P1-"))
+        self.assertEqual(normalized["card"]["owner"], "Alan")
 
     def test_clean_phase0_uat_config_has_narrow_tool_boundary_and_64k_context(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]

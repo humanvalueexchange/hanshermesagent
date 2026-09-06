@@ -89,6 +89,9 @@ class PilotStore:
         task_prefix: str = "P0",
         backend_name: str = "private-phase-0-local",
         public_repository: str = "not_configured_private_phase_0",
+        enforce_sensitivity_gate: bool = True,
+        enforce_reserved_al01_gate: bool = True,
+        defer_artifact_validation: bool = False,
     ) -> None:
         self.db_path = Path(db_path).expanduser()
         self.artifact_root = Path(
@@ -98,6 +101,9 @@ class PilotStore:
         self.task_prefix = task_prefix
         self.backend_name = backend_name
         self.public_repository = public_repository
+        self.enforce_sensitivity_gate = enforce_sensitivity_gate
+        self.enforce_reserved_al01_gate = enforce_reserved_al01_gate
+        self.defer_artifact_validation = defer_artifact_validation
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.artifact_root.mkdir(parents=True, exist_ok=True)
         self._initialize()
@@ -207,7 +213,9 @@ class PilotStore:
         pillar_value = _text(pillar, "pillar")
         if pillar_value not in PILLARS:
             raise PilotError(f"pillar must be one of {sorted(PILLARS)}; no task was created.")
-        if re.search(r"\bAL-01\b|Alan['’]?s updated bio", f"{deliverable_value} {source}", re.I):
+        if self.enforce_reserved_al01_gate and re.search(
+            r"\bAL-01\b|Alan['’]?s updated bio", f"{deliverable_value} {source}", re.I
+        ):
             raise PilotError("AL-01 is reserved until the Phase 0 pilot passes; no task was created.")
         criteria = acceptance_criteria or []
         if not criteria or any(not str(item).strip() for item in criteria):
@@ -229,7 +237,7 @@ class PilotStore:
             "sensitivity": sensitivity,
             "public_repository": (
                 "blocked_by_sensitivity_gate"
-                if sensitivity != "public"
+                if self.enforce_sensitivity_gate and sensitivity != "public"
                 else self.public_repository
             ),
             "initial_state": "open",
@@ -265,7 +273,11 @@ class PilotStore:
             self._event(
                 db, event_key=f"{message_id}:normalized", source_message=source,
                 actor=actor, task_id=task_id, requested_transition="normalize",
-                result="preview_ready", metadata={"sensitivity_gate": sensitivity},
+                result="preview_ready",
+                metadata={
+                    "sensitivity": sensitivity,
+                    "sensitivity_gate_enforced": self.enforce_sensitivity_gate,
+                },
             )
             row = db.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
         return self._task_result(row, "preview_ready")
@@ -280,7 +292,14 @@ class PilotStore:
         return self._transition(
             task_id, event_key=f"{approval_message_id}:approve", source_message=approval_message_id,
             actor=actor, requested="approve_task", allowed={"draft"}, new_state="open",
-            metadata={"public_repository": "blocked" if self._sensitivity(task_id) != "public" else "not configured"},
+            metadata={
+                "public_repository": (
+                    "blocked"
+                    if self.enforce_sensitivity_gate and self._sensitivity(task_id) != "public"
+                    else self.public_repository
+                ),
+                "sensitivity_gate_enforced": self.enforce_sensitivity_gate,
+            },
         )
 
     def starting(self, task_id: str, *, source_message: str, event_id: str, actor: str = "Hans") -> dict[str, Any]:
@@ -354,16 +373,37 @@ class PilotStore:
                     "INSERT OR IGNORE INTO artifacts VALUES (?, ?, ?, ?, ?)",
                     (f"{task_id}-{digest[:12]}", task_id, str(path), digest, _utc_now()),
                 )
-                db.execute("UPDATE tasks SET state='awaiting_validation', updated_at=? WHERE task_id=?",
-                           (_utc_now(), task_id))
+                if not self.defer_artifact_validation:
+                    db.execute(
+                        "UPDATE tasks SET state='awaiting_validation', updated_at=? WHERE task_id=?",
+                        (_utc_now(), task_id),
+                    )
                 self._event(db, event_key=f"{event_id}:artifact", source_message=source_message,
                             actor=actor, task_id=task_id, requested_transition="artifact_delivery",
-                            result="confirmed", metadata=metadata)
+                            result="staged" if self.defer_artifact_validation else "confirmed",
+                            metadata=metadata)
                 row = db.execute("SELECT * FROM tasks WHERE task_id=?", (task_id,)).fetchone()
-            return self._task_result(row, "artifact_confirmed", self._normalized_delivery_metadata(metadata, row["state"]))
+            return self._task_result(
+                row,
+                "artifact_staged" if self.defer_artifact_validation else "artifact_confirmed",
+                self._normalized_delivery_metadata(metadata, row["state"]),
+            )
         finally:
             if temp_path and Path(temp_path).exists():
                 Path(temp_path).unlink()
+
+    def confirm_artifact_delivery(
+        self, task_id: str, *, source_message: str, event_id: str, actor: str = "Hermes"
+    ) -> dict[str, Any]:
+        return self._transition(
+            task_id,
+            event_key=f"{event_id}:artifact-confirmed",
+            source_message=source_message,
+            actor=actor,
+            requested="artifact_delivery_confirmed",
+            allowed={"open", "in_progress"},
+            new_state="awaiting_validation",
+        )
 
     def deliver_text_artifact(
         self, task_id: str, *, filename: str, content_text: str, source_message: str, event_id: str, actor: str = "Hans"
@@ -394,15 +434,33 @@ class PilotStore:
                                 actor=actor, requested="reject_validation", allowed={"awaiting_validation"}, new_state="open",
                                 reason=_text(reason, "rejection reason"))
 
-    def failure(self, task_id: str, *, action: str, error: str, source_message: str, event_id: str, actor: str = "Hermes") -> dict[str, Any]:
+    def failure(
+        self,
+        task_id: str,
+        *,
+        action: str,
+        error: str,
+        source_message: str,
+        event_id: str,
+        actor: str = "Hermes",
+        recovery_state: str | None = None,
+    ) -> dict[str, Any]:
         action_value, error_value = _text(action, "action"), _text(error, "error")
+        if recovery_state is not None and recovery_state not in {"open", "blocked"}:
+            raise PilotError("recovery_state must be 'open' or 'blocked'")
         with self._connect() as db:
-            self._get_row(db, task_id)
-            db.execute("UPDATE tasks SET pending_action=?, updated_at=? WHERE task_id=?",
-                       (action_value, _utc_now(), task_id))
+            current = self._get_row(db, task_id)
+            state = recovery_state or current["state"]
+            db.execute(
+                "UPDATE tasks SET state=?, pending_action=?, updated_at=? WHERE task_id=?",
+                (state, action_value, _utc_now(), task_id),
+            )
             self._event(db, event_key=f"{event_id}:failure", source_message=source_message, actor=actor,
                         task_id=task_id, requested_transition=action_value, result="failed",
-                        reason=error_value, metadata={"recovery": "retry after underlying failure is resolved"})
+                        reason=error_value, metadata={
+                            "recovery": "retry after underlying failure is resolved",
+                            "state_after_failure": state,
+                        })
             row = db.execute("SELECT * FROM tasks WHERE task_id=?", (task_id,)).fetchone()
         return self._task_result(row, "operation_failed", {"pending_action": action_value, "error": error_value})
 

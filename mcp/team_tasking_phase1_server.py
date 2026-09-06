@@ -1,6 +1,6 @@
 #!/home/hans/.hermes-mcp-venv/bin/python
 
-"""MCP boundary for the gated Phase 1 Hans-only GitHub UAT."""
+"""MCP boundary for the controlled Phase 1 GitHub UAT."""
 
 from __future__ import annotations
 
@@ -24,11 +24,11 @@ from tools.team_tasking_pilot import PilotError, PilotStore  # noqa: E402
 mcp = FastMCP(
     "HVE Controlled Phase 1 GitHub Tasking",
     instructions=(
-        "Hans-only WhatsApp DM Phase 1. The local SQLite state machine remains "
-        "authoritative. GitHub writes are public, explicit, approval-gated, "
+        "Hans-approved WhatsApp DM Phase 1. The local SQLite state machine remains "
+        "authoritative. GitHub writes use authenticated repository access, are explicit, approval-gated, "
         "idempotent, and limited to humanvalueexchange/hve-team Project 2. "
-        "Never publish non-public content. After artifact publication, report "
-        "the confirmed path and commit SHA and stop for Hans validation."
+        "Sensitivity is recorded as task metadata, not a publication gate. After artifact publication, report "
+        "the confirmed path, commit SHA, and proof-comment URL and stop for Hans validation."
     ),
 )
 
@@ -42,6 +42,9 @@ def _store() -> PilotStore:
         task_prefix="P1",
         backend_name="controlled-phase-1-github",
         public_repository="humanvalueexchange/hve-team",
+        enforce_sensitivity_gate=False,
+        enforce_reserved_al01_gate=False,
+        defer_artifact_validation=True,
     )
 
 
@@ -162,6 +165,12 @@ def deliver_text_artifact(
             content=content_text.encode("utf-8"),
             approved=True,
         )
+        confirmed = store.confirm_artifact_delivery(
+            task_id,
+            source_message=source_message,
+            event_id=event_id,
+        )
+        status = _adapter().set_status(project_item_id, "awaiting_validation")
     except GitHubPhase1Error as exc:
         return store.failure(
             task_id,
@@ -169,8 +178,11 @@ def deliver_text_artifact(
             error=str(exc),
             source_message=source_message,
             event_id=f"{event_id}:github",
+            recovery_state="blocked",
         )
+    result = confirmed
     result["github"] = published
+    result["github_status"] = status
     result["operating_contract"] = (
         "Report the confirmed artifact path and commit SHA, then stop for Hans validation."
     )
@@ -207,6 +219,12 @@ def deliver_artifact(
             content=content,
             approved=True,
         )
+        confirmed = store.confirm_artifact_delivery(
+            task_id,
+            source_message=source_message,
+            event_id=event_id,
+        )
+        status = _adapter().set_status(project_item_id, "awaiting_validation")
     except GitHubPhase1Error as exc:
         return store.failure(
             task_id,
@@ -214,9 +232,48 @@ def deliver_artifact(
             error=str(exc),
             source_message=source_message,
             event_id=f"{event_id}:github",
+            recovery_state="blocked",
         )
+    result = confirmed
     result["github"] = published
+    result["github_status"] = status
     return result
+
+
+@mcp.tool()
+def post_artifact_comment(
+    task_id: str,
+    filename: str,
+    content_text: str,
+    commit_sha: str,
+    source_message: str,
+    event_id: str,
+    approved: bool,
+) -> dict[str, Any]:
+    """Post or reconcile the idempotent proof-of-work comment for a committed artifact."""
+    if not isinstance(content_text, str):
+        return {"status": "rejected", "confirmed": False, "error": "content_text must be text"}
+    store = _store()
+    snapshot = store._task_result(store._get(task_id), "comment_preview")
+    try:
+        result = _adapter().post_artifact_comment(
+            _task_payload(snapshot),
+            filename=filename,
+            content=content_text.encode("utf-8"),
+            commit_sha=commit_sha,
+            approved=approved,
+        )
+    except (PilotError, GitHubPhase1Error) as exc:
+        return {"status": "rejected", "confirmed": False, "error": str(exc)}
+    return {
+        **result,
+        "task_id": task_id,
+        "source_message": source_message,
+        "event_id": event_id,
+        "operating_contract": (
+            "Report the confirmed proof-comment URL, then stop for Hans validation."
+        ),
+    }
 
 
 @mcp.tool()
@@ -228,8 +285,16 @@ def validate_task(
     event_id: str,
     reason: str | None = None,
 ) -> dict[str, Any]:
-    """Require Hans's explicit validation before moving the public item to Done."""
+    """Require Hans's explicit validation before moving the GitHub item to Done."""
     store = _store()
+    if approved:
+        try:
+            task_snapshot = store._task_result(store._get(task_id), "validation_check")
+            proof = _adapter().verify_artifact_comment(
+                _task_payload(task_snapshot),
+            )
+        except (PilotError, GitHubPhase1Error) as exc:
+            return {"status": "rejected", "confirmed": False, "error": str(exc)}
     result = store.validate(
         task_id,
         approved=approved,
@@ -248,6 +313,8 @@ def validate_task(
             event_id=f"{event_id}:github",
         )
     result["github"] = status
+    if approved:
+        result["artifact_proof"] = proof
     return result
 
 

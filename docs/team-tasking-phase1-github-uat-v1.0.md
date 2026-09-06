@@ -1,9 +1,9 @@
 # HVE Team Tasking - Phase 1 GitHub UAT Contract
 
 **Status:** Implemented; live UAT not run
-**Scope:** Hans-owned, WhatsApp-only, public-safe task delivery
+**Scope:** Declared-owner, WhatsApp-only, authenticated GitHub task delivery
 
-## Fixed public control surface
+## Fixed GitHub control surface
 
 - Repository: `humanvalueexchange/hve-team`
 - Default branch: `main`
@@ -15,6 +15,8 @@ The local SQLite state machine remains authoritative. The GitHub adapter is an
 explicit side-effect boundary used only by
 `mcp/team_tasking_phase1_server.py`. The Phase 0 MCP server and database are
 unchanged.
+The Phase 1 store explicitly disables the Phase 0-only AL-01/Alan bio
+reservation gate; the Phase 0 store retains that gate by default.
 
 ## Identity and idempotency contract
 
@@ -27,12 +29,18 @@ unchanged.
 | Project item | One item linked to that issue; its returned item ID is carried explicitly |
 | Artifact path | `artifacts/<task-id>/<safe-filename>` on `main` |
 | Artifact commit | One GitHub Contents API commit; an existing path is never overwritten |
+| Proof comment | One idempotent issue comment linking the rendered artifact, raw file, commit, and SHA-256 |
 | Idempotency key | Task ID for the record, event ID for each lifecycle action, and task/path/content hash for an artifact |
-| Public fields | Owner, Pillar, Due date, Sensitivity, and Task ID are written to the Project item |
+| Project fields | Owner, Pillar, Due date, Sensitivity, and Task ID are written to the Project item |
 
-Only `public` content owned by Hans is eligible. The adapter re-runs the
-sensitivity classifier over the request, acceptance criteria, risks, and
-artifact bytes before every public write.
+Explicit Hans approval remains required before any GitHub write, and separate
+Hans validation remains required before a task reaches `Done`. The declared
+task owner is copied to the Project item and is not an authorization gate:
+approved tasks may name Alan, Brian, Hans, or another declared owner.
+Authenticated GitHub account, repository, and Project permissions control
+whether the write succeeds. Repository visibility and the sensitivity
+classification are not publication gates; sensitivity remains task metadata
+for accountability and reporting.
 
 ## Side-effect and retry behavior
 
@@ -42,14 +50,22 @@ artifact bytes before every public write.
   existing exact task marker instead of creating another object.
 - Existing artifact content is compared by bytes. Equal content is reported as
   a duplicate; different content fails visibly without overwrite.
+- Artifact delivery posts or reconciles a `[HVE-ARTIFACT <task-id>]` issue
+  comment containing the rendered Markdown link, raw file link, commit SHA, and
+  content SHA-256 before the task enters `awaiting_validation`.
+- The named `post_artifact_comment` MCP operation is available for explicit,
+  approval-gated reconciliation of a committed artifact comment.
 - A missing or malformed GitHub response, unavailable authentication,
   repository, Project, or field causes a visible failure. No success-shaped
   fallback is returned.
-- Local state transitions remain authoritative. If an external mutation fails
-  after a local transition, the MCP call fails visibly and the local audit trail
-  preserves the confirmed local state for explicit recovery.
+- Local state transitions remain authoritative. If GitHub artifact publication
+  fails after local staging, the MCP call fails visibly, the task becomes
+  `blocked` rather than `awaiting_validation`, and the pending action and
+  failure reason remain available for explicit recovery.
 - Status mapping is `open -> Open`, `in_progress -> In Progress`,
   `awaiting_validation -> Awaiting Validation`, and `done -> Done`.
+- Approved validation verifies the proof comment before moving the local task
+  and Project item to `Done`.
 - Validation rejection maps the local task and Project item back to `Open` with
   Hans's explicit reason.
 - The adapter never marks `Done` before the separate Hans validation call.

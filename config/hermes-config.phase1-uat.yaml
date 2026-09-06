@@ -484,6 +484,7 @@ mcp_servers:
     - starting
     - deliver_text_artifact
     - deliver_artifact
+    - post_artifact_comment
     - validate_task
     - task_status_digest
     - task_audit_trail

@@ -1,7 +1,9 @@
 """Narrow, idempotent GitHub adapter for the controlled Phase 1 UAT.
 
 The local task store remains authoritative.  This module only performs explicit
-public side effects after the caller has confirmed Hans approval.
+GitHub side effects after the caller has confirmed Hans approval. Repository
+visibility is not used as a content-safety decision; authenticated GitHub
+access is the authorization boundary.
 """
 
 from __future__ import annotations
@@ -14,8 +16,6 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Any, Callable
-
-from tools.team_tasking_pilot import classify_sensitivity
 
 
 class GitHubPhase1Error(RuntimeError):
@@ -144,21 +144,14 @@ class GitHubPhase1Adapter:
         except json.JSONDecodeError as exc:
             raise GitHubPhase1Error(f"{operation} returned malformed JSON") from exc
 
-    def _require_public(self, task: dict[str, Any], content: bytes | None = None) -> None:
-        values = [
-            str(task.get("source_message", "")),
-            str(task.get("deliverable", "")),
-            *[str(v) for v in task.get("acceptance_criteria", [])],
-            *[str(v) for v in task.get("risks", [])],
-        ]
-        if task.get("sensitivity") not in (None, "public"):
-            raise GitHubPhase1Error("public GitHub side effect rejected by sensitivity gate")
-        if classify_sensitivity(values + ([content.decode("utf-8", errors="replace")] if content else [])) != "public":
-            raise GitHubPhase1Error("public GitHub side effect rejected by content safety gate")
-        if task.get("owner") != "Hans":
-            raise GitHubPhase1Error("Phase 1 public task must be owned by Hans")
+    def _validate_task(self, task: dict[str, Any]) -> None:
+        owner = task.get("owner")
+        if not isinstance(owner, str) or not owner.strip():
+            raise GitHubPhase1Error("Phase 1 task owner is required")
         if task.get("pillar") not in {"Time", "Physical", "Mental", "Social", "Financial"}:
             raise GitHubPhase1Error("invalid task pillar")
+        if task.get("sensitivity") not in (self.config.sensitivity_options or {}):
+            raise GitHubPhase1Error("invalid task sensitivity")
 
     def _issue(self, task: dict[str, Any]) -> dict[str, Any]:
         marker = f"[HVE-TASK {task['task_id']}]"
@@ -186,7 +179,7 @@ class GitHubPhase1Adapter:
             f"{marker}\n\n"
             f"Owner: {task['owner']}\nPillar: {task['pillar']}\n"
             f"Sensitivity: {task['sensitivity']}\nTask ID: `{task['task_id']}`\n\n"
-            "Approved public Phase 1 task. Hans validates the artifact before completion."
+            "Approved Phase 1 task. Hans validates the artifact before completion."
         )
         try:
             created_text = self.runner(
@@ -275,7 +268,7 @@ class GitHubPhase1Adapter:
     def create_tracking_record(self, task: dict[str, Any], *, approved: bool) -> dict[str, Any]:
         if not approved:
             raise GitHubPhase1Error("GitHub tracking creation requires explicit Hans approval")
-        self._require_public(task)
+        self._validate_task(task)
         issue = self._issue(task)
         issue_url = issue.get("html_url") or issue.get("url")
         issue_number = issue.get("number")
@@ -350,7 +343,7 @@ class GitHubPhase1Adapter:
     ) -> dict[str, Any]:
         if not approved:
             raise GitHubPhase1Error("artifact publication requires explicit Hans approval")
-        self._require_public(task, content)
+        self._validate_task(task)
         path = self.artifact_path(task["task_id"], filename)
         encoded = base64.b64encode(content).decode("ascii")
         lookup = self.runner(
@@ -379,8 +372,14 @@ class GitHubPhase1Adapter:
             commit_sha = commits[0].get("sha") if commits else existing.get("commit", {}).get("sha")
             if not commit_sha:
                 raise GitHubPhase1Error("existing artifact lacked a commit SHA")
-            self.set_status(project_item_id, "awaiting_validation")
-            return {"status": "artifact_duplicate", "confirmed": True, "artifact_path": path, "commit_sha": commit_sha}
+            comment = self._ensure_artifact_comment(task, path=path, commit_sha=commit_sha, content=content)
+            return {
+                "status": "artifact_duplicate",
+                "confirmed": True,
+                "artifact_path": path,
+                "commit_sha": commit_sha,
+                "artifact_comment_url": comment["comment_url"],
+            }
         response = self._json(
             self.runner(
                 [
@@ -402,11 +401,149 @@ class GitHubPhase1Adapter:
         commit_sha = response.get("commit", {}).get("sha")
         if not commit_sha:
             raise GitHubPhase1Error("artifact publication response lacked commit SHA")
-        self.set_status(project_item_id, "awaiting_validation")
+        comment = self._ensure_artifact_comment(task, path=path, commit_sha=commit_sha, content=content)
         return {
             "status": "artifact_published",
             "confirmed": True,
             "artifact_path": path,
             "commit_sha": commit_sha,
+            "artifact_comment_url": comment["comment_url"],
             "project_item_id": project_item_id,
+        }
+
+    def _find_issue(self, task: dict[str, Any]) -> dict[str, Any]:
+        marker = f"[HVE-TASK {task['task_id']}]"
+        result = self.runner(
+            [
+                "issue",
+                "list",
+                "--repo",
+                self.config.repository,
+                "--state",
+                "all",
+                "--search",
+                f'"{marker}" in:title',
+                "--json",
+                "number,url,title",
+            ],
+            None,
+        )
+        matches = [
+            item for item in self._json(result, "issue lookup")
+            if marker in str(item.get("title", ""))
+        ]
+        if not matches:
+            raise GitHubPhase1Error(f"no GitHub issue found for task {task['task_id']}")
+        return matches[0]
+
+    def _ensure_artifact_comment(
+        self,
+        task: dict[str, Any],
+        *,
+        path: str,
+        commit_sha: str,
+        content: bytes,
+    ) -> dict[str, Any]:
+        issue = self._find_issue(task)
+        issue_number = issue.get("number")
+        if not issue_number:
+            raise GitHubPhase1Error("issue response lacked number for artifact comment")
+        marker = f"[HVE-ARTIFACT {task['task_id']}]"
+        comments_text = self.runner(
+            [
+                "api",
+                f"repos/{self.config.repository}/issues/{issue_number}/comments",
+                "--paginate",
+            ],
+            None,
+        )
+        comments = self._json(comments_text, "artifact comment lookup") if comments_text.strip() else []
+        existing = next(
+            (comment for comment in comments if marker in str(comment.get("body", ""))),
+            None,
+        )
+        if existing:
+            comment_url = existing.get("html_url")
+            if not comment_url:
+                raise GitHubPhase1Error("existing artifact comment lacked URL")
+            return {"comment_url": comment_url}
+        digest = hashlib.sha256(content).hexdigest()
+        rendered_url = f"https://github.com/{self.config.repository}/blob/{self.config.branch}/{path}"
+        raw_url = f"https://raw.githubusercontent.com/{self.config.repository}/{self.config.branch}/{path}"
+        body = (
+            f"{marker}\n\n"
+            f"**Proof of work:** [{path}]({rendered_url})\n"
+            f"**Raw file:** {raw_url}\n"
+            f"**Commit:** `{commit_sha}`\n"
+            f"**SHA-256:** `{digest}`"
+        )
+        created = self._json(
+            self.runner(
+                [
+                    "api",
+                    f"repos/{self.config.repository}/issues/{issue_number}/comments",
+                    "--method",
+                    "POST",
+                    "-f",
+                    f"body={body}",
+                ],
+                None,
+            ),
+            "artifact comment creation",
+        )
+        comment_url = created.get("html_url")
+        if not comment_url:
+            raise GitHubPhase1Error("artifact comment response lacked URL")
+        return {"comment_url": comment_url}
+
+    def verify_artifact_comment(self, task: dict[str, Any]) -> dict[str, Any]:
+        issue = self._find_issue(task)
+        issue_number = issue.get("number")
+        if not issue_number:
+            raise GitHubPhase1Error("issue response lacked number for artifact comment verification")
+        marker = f"[HVE-ARTIFACT {task['task_id']}]"
+        comments_text = self.runner(
+            [
+                "api",
+                f"repos/{self.config.repository}/issues/{issue_number}/comments",
+                "--paginate",
+            ],
+            None,
+        )
+        comments = self._json(comments_text, "artifact comment verification") if comments_text.strip() else []
+        comment = next(
+            (item for item in comments if marker in str(item.get("body", ""))),
+            None,
+        )
+        if not comment or not comment.get("html_url"):
+            raise GitHubPhase1Error(f"artifact proof comment is missing for task {task['task_id']}")
+        return {"status": "artifact_comment_confirmed", "confirmed": True, "comment_url": comment["html_url"]}
+
+    def post_artifact_comment(
+        self,
+        task: dict[str, Any],
+        *,
+        filename: str,
+        content: bytes,
+        commit_sha: str,
+        approved: bool,
+    ) -> dict[str, Any]:
+        if not approved:
+            raise GitHubPhase1Error("artifact comment publication requires explicit Hans approval")
+        self._validate_task(task)
+        path = self.artifact_path(task["task_id"], filename)
+        if not commit_sha.strip():
+            raise GitHubPhase1Error("artifact commit SHA is required")
+        comment = self._ensure_artifact_comment(
+            task,
+            path=path,
+            commit_sha=commit_sha,
+            content=content,
+        )
+        return {
+            "status": "artifact_comment_confirmed",
+            "confirmed": True,
+            "artifact_path": path,
+            "commit_sha": commit_sha,
+            "artifact_comment_url": comment["comment_url"],
         }
