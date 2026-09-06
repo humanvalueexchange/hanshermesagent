@@ -241,6 +241,7 @@ class TeamTaskingPilotTests(unittest.TestCase):
 
     def test_digest_groups_ownership_and_due_dates(self) -> None:
         digest = self.store.digest()
+        self.assertEqual(digest["backend"], "private-phase-0-local")
         self.assertEqual(digest["counts"]["draft"], 1)
         item = digest["tasks"]["draft"][0]
         self.assertEqual(item["owner"], "Hermes")

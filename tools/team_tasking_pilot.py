@@ -415,7 +415,7 @@ class PilotStore:
                 "task_id": row["task_id"], "owner": row["owner"], "deliverable": row["deliverable"],
                 "due_date": row["due_date"], "pillar": row["pillar"], "pending_action": row["pending_action"],
             })
-        return {"backend": "private-phase-0-local", "counts": {key: len(value) for key, value in grouped.items()}, "tasks": grouped}
+        return {"backend": self.backend_name, "counts": {key: len(value) for key, value in grouped.items()}, "tasks": grouped}
 
     def events(self, task_id: str) -> list[dict[str, Any]]:
         with self._connect() as db:
