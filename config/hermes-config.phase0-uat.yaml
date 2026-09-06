@@ -324,6 +324,11 @@ openrouter:
   response_cache: true
   response_cache_ttl: 300
 personalities: {}
+platforms:
+  telegram:
+    enabled: false
+  whatsapp:
+    enabled: true
 platform_toolsets:
   cli:
   - clarify
@@ -425,6 +430,7 @@ stt:
     model: whisper-1
   provider: local
 telegram:
+  enabled: false
   allowed_chats: ''
   channel_prompts: {}
   reactions: false
@@ -530,4 +536,5 @@ web:
   extract_backend: lightpanda
   search_backend: ''
   use_gateway: false
-whatsapp: {}
+whatsapp:
+  enabled: true

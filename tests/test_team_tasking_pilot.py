@@ -250,6 +250,11 @@ class TeamTaskingPilotTests(unittest.TestCase):
         self.assertEqual(uat["model"]["context_length"], template["model"]["context_length"])
         self.assertEqual(uat["model"]["ollama_num_ctx"], template["model"]["ollama_num_ctx"])
 
+        self.assertFalse(uat["platforms"]["telegram"]["enabled"])
+        self.assertTrue(uat["platforms"]["whatsapp"]["enabled"])
+        self.assertFalse(uat["telegram"]["enabled"])
+        self.assertTrue(uat["whatsapp"]["enabled"])
+
         forbidden_tools = {"terminal", "browser", "web", "code_execution", "delegation", "cronjob", "computer_use"}
         self.assertTrue(forbidden_tools.issubset(set(uat["agent"]["disabled_toolsets"])))
         whatsapp_tools = set(uat["platform_toolsets"]["whatsapp"])
