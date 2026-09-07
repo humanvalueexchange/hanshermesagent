@@ -9,7 +9,7 @@
 |---|---|---|---|
 | **hermes-agent** | `0.21.0` | 2026-09-01 | v2026.8.31 — confirmed after `hermes update` |
 | **qwen3.8-hermes:27b-128k** | Ollama local | 2026-09-01 | Hard-capped primary reasoning/orchestration and tool use — 65K context |
-| **qwen3.8-distill-2b:q4_k_m** | Ollama local | 2026-08-22 | Lightweight derivation — 32K context |
+| **qwen3.8-distill-2b:q4_k_m** | Ollama local | 2026-08-22 | Lightweight derivation — 64K context |
 | **nomic-embed-text-v1.5** | Ollama local (`nomic-embed-text:latest` request alias) | 2026-08-25 | Knowledge embeddings — 768 dimensions; LanceDB contract aligned |
 | **Open WebUI** | running | 2026-05-29 | Debug console only |
 | **HVE MCP Server** | `1.0.0` | 2026-05-30 | hve-node at :8765 |

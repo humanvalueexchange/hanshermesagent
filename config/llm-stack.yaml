@@ -39,8 +39,8 @@ resident:
     purpose: coding and fallback reasoning on the primary model
   deriver:
     model: qwen3.8-distill-2b:q4_k_m
-    context: 32768
-    ollama_num_ctx: 32768
+    context: 65536
+    ollama_num_ctx: 65536
     keep_alive: -1
     purpose: auxiliary derivation, extraction, triage, decomposition, summaries, and bounded calculations
   embedding:

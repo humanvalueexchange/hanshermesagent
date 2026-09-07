@@ -17,7 +17,7 @@ Ollama is the local model runtime. The approved hot set on the DGX Spark is:
 |---|---|---:|
 | Primary Hermes reasoning and orchestration | `qwen3.8-hermes:27b-128k` | 65,536 |
 | Coding and fallback reasoning | `qwen3.8-hermes:27b-128k` | 131,072 |
-| Auxiliary derivation, extraction, triage, decomposition, and summaries | `qwen3.8-distill-2b:q4_k_m` | 32,768 |
+| Auxiliary derivation, extraction, triage, decomposition, and summaries | `qwen3.8-distill-2b:q4_k_m` | 65,536 |
 | Embeddings | `nomic-embed-text:latest` (`nomic-embed-text-v1.5` contract) | 768 |
 
 The models are served locally through Ollama with persistent keep-alive

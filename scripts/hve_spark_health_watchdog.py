@@ -127,7 +127,7 @@ PROFILE_REGISTRY: dict[str, dict[str, Any]] = {
 
 OLLAMA_WORKLOADS: dict[str, dict[str, Any]] = {
     "qwen3.8-hermes:27b-128k": {"context": 131072, "workloads": ("Hermes active profiles", "Hermes-Coder")},
-    "qwen3.8-distill-2b:q4_k_m": {"context": 32768, "workloads": ("local extraction and auxiliary workloads",)},
+    "qwen3.8-distill-2b:q4_k_m": {"context": 65536, "workloads": ("local extraction and auxiliary workloads",)},
     "nomic-embed-text:latest": {"context": 2048, "workloads": ("embedding workloads",)},
 }
 

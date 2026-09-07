@@ -31,6 +31,25 @@ load_generate_model() {
     -H "Content-Type: application/json" \
     -d "{\"model\":\"${model}\",\"prompt\":\"ok\",\"keep_alive\":${KEEP_ALIVE},\"stream\":false,\"options\":{\"num_ctx\":${context}}}" \
     >/dev/null
+
+  python3 - "$model" "$context" "$OLLAMA_URL" <<'PY'
+import json
+import sys
+import urllib.request
+
+model, expected, base_url = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+with urllib.request.urlopen(f"{base_url}/api/ps", timeout=10) as response:
+    payload = json.load(response)
+matches = [item for item in payload.get("models", []) if item.get("name") == model]
+if len(matches) != 1:
+    raise SystemExit(f"expected one resident {model}, found {len(matches)}")
+actual = matches[0].get("context_length")
+if actual != expected:
+    raise SystemExit(
+        f"{model} context mismatch: expected {expected}, observed {actual}"
+    )
+print(f"[preload] Verified {model} context {actual}")
+PY
 }
 
 load_embedding_model() {
@@ -43,6 +62,6 @@ load_embedding_model() {
 
 wait_for_ollama
 load_generate_model "${PRIMARY_MODEL}" 131072
-load_generate_model "${DERIVER_MODEL}" 32768
+load_generate_model "${DERIVER_MODEL}" 65536
 load_embedding_model
 log "Done. Hot policy: ${PRIMARY_MODEL}, ${DERIVER_MODEL}, and ${EMBEDDING_MODEL}."
