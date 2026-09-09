@@ -1,4 +1,11 @@
-# Hermes - Chief of Staff and Knowledge Agent
+# RETIRED — Reference Only
+
+> **Do not commit new implementation work to this repository.**
+> `humanvalueexchange/hanshermesagent` is preserved for historical reference,
+> provenance, and rollback investigation. HVE-Librarian work belongs in
+> `humanvalueexchange/hve-librarian`.
+
+## Hermes - Chief of Staff and Knowledge Agent
 
 Hermes is Human Value Exchange's local Chief of Staff profile for agent
 coordination, continuity, decision preparation, and durable knowledge capture.
