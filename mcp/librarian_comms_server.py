@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 from tools.librarian_comms import (  # noqa: E402
     LibrarianCommsError,
     close_issue,
+    comment_on_commit,
     comment_on_issue,
     create_enhancement_issue,
     publish_communication,
@@ -90,6 +91,19 @@ def comment_on_github_issue(
     """Add an approved append-only comment to an HVE GitHub issue."""
     try:
         return comment_on_issue(issue_number, body, approved_by=approved_by)
+    except LibrarianCommsError as exc:
+        return {"status": "rejected", "error": str(exc)}
+
+
+@mcp.tool()
+def comment_on_github_commit(
+    commit_sha: str,
+    body: str,
+    approved_by: str,
+) -> dict[str, str]:
+    """Add an approved append-only pointer comment to a GitHub commit."""
+    try:
+        return comment_on_commit(commit_sha, body, approved_by=approved_by)
     except LibrarianCommsError as exc:
         return {"status": "rejected", "error": str(exc)}
 

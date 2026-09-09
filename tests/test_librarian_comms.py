@@ -60,6 +60,31 @@ class LibrarianCommsTests(unittest.TestCase):
         self.assertEqual(result["status"], "commented")
         self.assertIn("HansHWestphal/hve-knowledge-and-operations", run.call_args.args[0])
 
+    def test_comments_on_commit_with_fixed_repository(self) -> None:
+        with mock.patch.object(librarian_comms, "_run", return_value="https://github.com/comment/2") as run:
+            result = librarian_comms.comment_on_commit(
+                "57ee02c18f8abd86d3f947c717916c474db9bfa9",
+                "Brief pointer",
+                approved_by="Hans Westphal",
+            )
+        self.assertEqual(result["status"], "commented")
+        self.assertEqual(result["comment_url"], "https://github.com/comment/2")
+        command = run.call_args.args[0]
+        self.assertEqual(command[:4], ["gh", "api", "--method", "POST"])
+        self.assertIn(
+            "repos/HansHWestphal/hve-knowledge-and-operations/commits/"
+            "57ee02c18f8abd86d3f947c717916c474db9bfa9/comments",
+            command,
+        )
+
+    def test_rejects_invalid_commit_sha(self) -> None:
+        with self.assertRaisesRegex(ValueError, "hexadecimal SHA"):
+            librarian_comms.comment_on_commit(
+                "not-a-sha",
+                "Brief pointer",
+                approved_by="Hans Westphal",
+            )
+
     def test_issue_lifecycle_requires_approval_and_supports_reopen(self) -> None:
         with mock.patch.object(librarian_comms, "_run", return_value="") as run:
             result = librarian_comms.close_issue(

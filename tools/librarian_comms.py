@@ -17,6 +17,7 @@ MAX_FILE_BYTES = 100_000
 MAX_ISSUE_TITLE_LENGTH = 200
 MAX_ISSUE_BODY_LENGTH = 50_000
 ALLOWED_ISSUE_LABELS = {"enhancement", "documentation", "proposal"}
+COMMIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
 
 
 class LibrarianCommsError(ValueError):
@@ -202,6 +203,41 @@ def comment_on_issue(
     return {
         "status": "commented",
         "issue_number": number,
+        "comment_url": comment_url,
+        "repository": GITHUB_REPOSITORY,
+    }
+
+
+def comment_on_commit(
+    commit_sha: str,
+    body: str,
+    *,
+    approved_by: str,
+) -> dict[str, str]:
+    if approved_by.strip() != AUTHORIZED_APPROVER:
+        raise LibrarianCommsError("Explicit approval by Hans Westphal is required.")
+    sha = commit_sha.strip()
+    if not COMMIT_SHA_RE.fullmatch(sha):
+        raise LibrarianCommsError("Commit must be a 7-40 character hexadecimal SHA.")
+    clean_body = body.strip()
+    if not clean_body or len(clean_body) > MAX_ISSUE_BODY_LENGTH:
+        raise LibrarianCommsError("Comment must be present and at most 50,000 characters.")
+    comment_url = _run(
+        [
+            "gh",
+            "api",
+            "--method",
+            "POST",
+            f"repos/{GITHUB_REPOSITORY}/commits/{sha}/comments",
+            "--field",
+            f"body={clean_body}",
+            "--jq",
+            ".html_url",
+        ]
+    )
+    return {
+        "status": "commented",
+        "commit": sha,
         "comment_url": comment_url,
         "repository": GITHUB_REPOSITORY,
     }
